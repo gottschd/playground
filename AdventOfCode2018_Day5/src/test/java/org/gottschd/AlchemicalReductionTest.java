@@ -23,6 +23,7 @@ public class AlchemicalReductionTest {
 		List<Object[]> params = new ArrayList<>();
 		params.add(new Object[] { new AlchemicalReductionVersion001() });
 		params.add(new Object[] { new AlchemicalReductionVersion002() });
+		params.add(new Object[] { new AlchemicalReductionVersion003() });
 		return params;
 	}
 
