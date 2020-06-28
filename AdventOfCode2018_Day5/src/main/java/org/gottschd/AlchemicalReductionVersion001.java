@@ -1,8 +1,9 @@
 package org.gottschd;
 
-public class AlchemicalReduction {
+public class AlchemicalReductionVersion001 implements AlchemicalReductionable {
 
-	public String reduce001(String pInput) {
+	@Override
+	public String reduce(String pInput) {
 		char[] in = pInput.toCharArray();
 		for (int i = 0; i < in.length - 1; i++) {
 			char curChar = in[i];
@@ -11,11 +12,10 @@ public class AlchemicalReduction {
 			if (curChar != nextChar && (Character.toLowerCase(curChar) == Character.toLowerCase(nextChar))) {
 				String firstPart = new String(in, 0, i);
 				String lastPart = new String(in, i + 2, in.length - (i + 2));
-				return reduce001(firstPart + lastPart);
+				return reduce(firstPart + lastPart);
 			}
 
 		}
 		return pInput;
 	}
-
 }
