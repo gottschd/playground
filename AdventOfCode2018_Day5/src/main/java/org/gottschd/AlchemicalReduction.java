@@ -1,4 +1,4 @@
-package AdventOfCode2018Day5;
+package org.gottschd;
 
 public class AlchemicalReduction {
 

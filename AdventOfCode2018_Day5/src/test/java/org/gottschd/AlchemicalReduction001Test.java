@@ -1,7 +1,8 @@
-package AdventOfCode2018Day5;
+package org.gottschd;
 
 import static org.junit.Assert.assertEquals;
 
+import org.gottschd.AlchemicalReduction;
 import org.junit.Test;
 
 public class AlchemicalReduction001Test {
