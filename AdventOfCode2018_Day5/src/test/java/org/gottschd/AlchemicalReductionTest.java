@@ -24,6 +24,7 @@ public class AlchemicalReductionTest {
 		params.add(new Object[] { new AlchemicalReductionVersion001() });
 		params.add(new Object[] { new AlchemicalReductionVersion002() });
 		params.add(new Object[] { new AlchemicalReductionVersion003() });
+		params.add(new Object[] { new AlchemicalReductionVersion004() });
 		return params;
 	}
 
