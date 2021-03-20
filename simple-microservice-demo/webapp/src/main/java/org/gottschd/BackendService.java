@@ -15,16 +15,16 @@ public class BackendService {
 
 	Logger logger = LoggerFactory.getLogger(BackendService.class);
 
-	@Value("${kinddemo.service.host}")
+	@Value("${backend.host}")
 	private String svcHost;
 
-	@Value("${kinddemo.service.port}")
+	@Value("${backend.port}")
 	private int svcPort;
 
-	@Value("${kinddemo.service.protocol}")
+	@Value("${backend.protocol}")
 	private String svcProtocol;
 
-	@Value("${kinddemo.service.url}")
+	@Value("${backend.url}")
 	private String svcUrl;
 
 	public String callBackend() throws Exception {
