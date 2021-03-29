@@ -36,8 +36,6 @@ spec:
         - name: http
           containerPort: 8080
         env:
-        - name: backend.host
-          value: backend
         - name: backend.url
           value: http://host.docker.internal:8081
 ---

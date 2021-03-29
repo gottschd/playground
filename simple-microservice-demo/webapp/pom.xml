@@ -56,7 +56,7 @@
             <version>2.8.0</version>
             <configuration>
               <to>
-                <image>${project.name}</image>
+                <image>${project.artifactId}</image>
               </to>
               <container>
                 <jvmFlags>

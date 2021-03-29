@@ -14,6 +14,6 @@ public class BackendCallController
     
     @RequestMapping( value = "/", method = RequestMethod.GET )
     public String callBackend() throws Exception {
-        return "headless call to backend 1111:" + backend.callBackend();
+        return "headless call to backend:" + backend.callBackend();
     }
 }

@@ -3,19 +3,18 @@ version: "3"
 services:
 
   my-kind-demo-webapp:
-    image: my-kind-demo-webapp-image:latest
+    image: simple-microservice-webapp:latest
     pull_policy: if_not_present
-    container_name: my-kind-demo-webapp
     depends_on:
       - my-kind-demo-service    
     ports:
       - 8080:8080
     environment:
-      kinddemo.service.host: "my-kind-demo-service"      
+      backend.url: "http://my-kind-demo-service:8081"      
 
   my-kind-demo-service:
-    image: my-kind-demo-service-image:latest
-    pull_policy: if_not_present    
+    image: simple-microservice-backend:latest
+    pull_policy: if_not_present
     ports:
       - 8081:8081
 

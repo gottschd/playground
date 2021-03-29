@@ -15,15 +15,6 @@ public class BackendService {
 
 	Logger logger = LoggerFactory.getLogger(BackendService.class);
 
-	@Value("${backend.host}")
-	private String svcHost;
-
-	@Value("${backend.port}")
-	private int svcPort;
-
-	@Value("${backend.protocol}")
-	private String svcProtocol;
-
 	@Value("${backend.url}")
 	private String svcUrl;
 
@@ -39,11 +30,6 @@ public class BackendService {
 	}
 
 	private URL calculateUrl() throws Exception {
-
-		if (svcUrl != null && !svcUrl.isEmpty())
-			return new URL(svcUrl);
-
-		return new URL(svcProtocol, svcHost, svcPort, "");
-
+		return new URL(svcUrl);
 	}
 }
