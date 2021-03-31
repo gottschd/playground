@@ -68,22 +68,21 @@ spec:
         env:
         - name: backend.url
           value: http://backend-service:8081
-
-#---
-#apiVersion: networking.k8s.io/v1
-#kind: Ingress
-#metadata:
-#  name: webapp-ingress
-#  annotations:
-#    nginx.ingress.kubernetes.io/rewrite-target: /
-#spec:
-#  rules:
-#    - http:
-#        paths:
-#        - path: /webapp
-#          pathType: Prefix
-#          backend:
-#            service:
-#              name: webapp
-#              port:
-#                number: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: webapp-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+    - http:
+        paths:
+        - path: /webapp
+          pathType: Prefix
+          backend:
+            service:
+              name: webapp-service
+              port:
+                number: 8080
