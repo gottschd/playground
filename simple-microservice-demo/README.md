@@ -16,5 +16,6 @@ docker-compose up
 - kind load image-archive target\webapp-0.0.1-SNAPSHOT.tar --name dev
 - docker exec -it dev-control-plane crictl images // show images in kind cluster
 - kubectl -f k8s.yml apply
-- kubectl port-forward deployments/backend-deployment 8081:8081 -n default
-- kubectl port-forward deployments/webapp-deployment 8080:8080 -n default
+- curl http://localhost/webapp
+- (or) kubectl port-forward deployments/backend-deployment 8081:8081 -n default
+- (or) kubectl port-forward deployments/webapp-deployment 8080:8080 -n default

@@ -10,7 +10,7 @@ services:
     ports:
       - 8080:8080
     environment:
-      backend.url: "http://my-kind-demo-service:8081"      
+      backend.url: "http://my-kind-demo-service:8081"
 
   my-kind-demo-service:
     image: simple-microservice-backend:latest
