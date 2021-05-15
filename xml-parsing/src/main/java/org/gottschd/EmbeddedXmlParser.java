@@ -1,47 +1,47 @@
 package org.gottschd;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.xml.stream.XMLStreamReader;
+
 import java.io.OutputStreamWriter;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 
-import javax.xml.stream.XMLStreamReader;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
- * 
+ *
  */
 public class EmbeddedXmlParser extends AbstractXmlParser implements Runnable {
-    
+
     private static final Logger logger = LoggerFactory.getLogger(EmbeddedXmlParser.class);
 
-    private PipedOutputStream pop;
-    private PipedInputStream pip;
-    private OutputStreamWriter dataStream;
+    private final PipedOutputStream pop;
+    private final PipedInputStream pip;
+    private final OutputStreamWriter dataStream;
     private Thread ownerThread;
-    
+
     /**
-     * 
      * @throws Exception
      */
     public EmbeddedXmlParser() throws Exception {
-        
+        pop = new PipedOutputStream();
+        pip = new PipedInputStream(pop);
+        dataStream = new OutputStreamWriter(pop);
     }
 
     /**
-     * 
+     *
      */
     public final void feed(char[] textCharacters, int textStart, int textLength) throws Exception {
         logger.info("feed run in EmbeddedXmlParser");
         dataStream.write(textCharacters, textStart, textLength);
-        dataStream.flush();
     }
 
     /**
-     * 
+     *
      */
-    public final void close() throws Exception {
+    public final void stop() throws Exception {
         dataStream.flush();
         dataStream.close();
 
@@ -50,12 +50,8 @@ public class EmbeddedXmlParser extends AbstractXmlParser implements Runnable {
 
     /**
      * @throws Exception
-     * 
      */
-    public EmbeddedXmlParser open() throws Exception {
-        pop = new PipedOutputStream();
-        pip = new PipedInputStream(pop);
-        dataStream = new OutputStreamWriter(pop);
+    public EmbeddedXmlParser start() throws Exception {
         ownerThread = new Thread(this);
         ownerThread.start();
         return this;

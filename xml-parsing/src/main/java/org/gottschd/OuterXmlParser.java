@@ -1,9 +1,9 @@
 package org.gottschd;
 
-import java.util.Objects;
-
 import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamReader;
+
+import java.util.Objects;
 
 public class OuterXmlParser extends AbstractXmlParser {
 
@@ -17,14 +17,14 @@ public class OuterXmlParser extends AbstractXmlParser {
             case XMLStreamConstants.START_ELEMENT:
                 if ("B".equals(xmlr.getLocalName())) {
                     // activate parsing of embedded (cdata/escaped) information
-                    embeddedParser = new EmbeddedXmlParser().open();
+                    embeddedParser = new EmbeddedXmlParser().start();
                 }
                 break;
 
             case XMLStreamConstants.END_ELEMENT:
                 if ("B".equals(xmlr.getLocalName())) {
                     Objects.requireNonNull(embeddedParser);
-                    embeddedParser.close();
+                    embeddedParser.stop();
                     embeddedParser = null;
                 }
                 break;

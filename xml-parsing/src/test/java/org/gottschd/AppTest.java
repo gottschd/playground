@@ -22,6 +22,6 @@ public class AppTest {
         try (InputStream in = this.getClass().getResourceAsStream("/req_escaped_embedded_small.xml")) {
             new OuterXmlParser().parse(in);
         }
-        System.out.println("finished");
+        System.out.println("finished");  
     }
 }
