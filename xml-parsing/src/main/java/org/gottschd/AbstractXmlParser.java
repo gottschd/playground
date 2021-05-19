@@ -1,6 +1,8 @@
 package org.gottschd;
 
 import java.io.InputStream;
+import java.util.Deque;
+import java.util.LinkedList;
 
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamConstants;
@@ -15,6 +17,8 @@ import org.slf4j.LoggerFactory;
 public abstract class AbstractXmlParser {
 
     private static final Logger logger = LoggerFactory.getLogger(AbstractXmlParser.class);
+
+    protected final Deque<String> breadCrumb = new LinkedList<>();
 
     /**
      * 
@@ -33,10 +37,33 @@ public abstract class AbstractXmlParser {
         XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
         XMLStreamReader reader = xmlInputFactory.createXMLStreamReader(in);
         while (reader.hasNext()) {
+            updateBreadCrumb(reader);
+            printCurrentBreadCrumb();
             processEvent(reader);
             reader.next();
         }
         reader.close();
+    }
+
+    private void updateBreadCrumb(XMLStreamReader xmlr) {
+        
+        switch (xmlr.getEventType()) {
+            case XMLStreamConstants.START_ELEMENT:
+                breadCrumb.push(xmlr.getLocalName());
+                break;
+            case XMLStreamConstants.END_ELEMENT:
+                breadCrumb.pop();
+                break;
+            default:
+                break;
+        }
+    }
+
+    /**
+     * 
+     */
+    public void printCurrentBreadCrumb() {
+        logger.info("Current breadcrumb position: {}", breadCrumb);
     }
 
     /**
@@ -48,12 +75,10 @@ public abstract class AbstractXmlParser {
 
         StringBuilder result = new StringBuilder();
 
-        result.append(debugPrefix + "EVENT:[" + xmlr.getLocation().getLineNumber() + "]["
+        result.append(debugPrefix + "EVENT("+xmlr.getEventType()+"):[" + xmlr.getLocation().getLineNumber() + "]["
                 + xmlr.getLocation().getColumnNumber() + "] ");
 
         result.append(" [");
-
-        int counterCharacterEventInvoked = 0;
 
         switch (xmlr.getEventType()) {
             case XMLStreamConstants.END_DOCUMENT:
@@ -80,32 +105,33 @@ public abstract class AbstractXmlParser {
                 int start = xmlr.getTextStart();
                 int length = xmlr.getTextLength();
                 result.append("CHARACTERS(length:" + length + ")");
-                result.append(new String(xmlr.getTextCharacters(), start, length).trim());
+                result.append(" ... ");
+                // result.append(new String(xmlr.getTextCharacters(), start, length).trim());
                 break;
-            case XMLStreamConstants.PROCESSING_INSTRUCTION:
-                result.append("<?");
-                if (xmlr.hasText())
-                    result.append(xmlr.getText());
-                result.append("?>");
-                break;
-            case XMLStreamConstants.CDATA:
-                result.append("<![CDATA[");
-                start = xmlr.getTextStart();
-                length = xmlr.getTextLength();
-                result.append(new String(xmlr.getTextCharacters(), start, length).trim());
-                result.append("]]>");
-                break;
-            case XMLStreamConstants.COMMENT:
-                result.append("<!--");
-                if (xmlr.hasText())
-                    result.append(xmlr.getText());
-                result.append("-->");
-                break;
-            case XMLStreamConstants.ENTITY_REFERENCE:
-                result.append(xmlr.getLocalName() + "=");
-                if (xmlr.hasText())
-                    result.append("[" + xmlr.getText() + "]");
-                break;
+            // case XMLStreamConstants.PROCESSING_INSTRUCTION:
+            //     result.append("<?");
+            //     if (xmlr.hasText())
+            //         result.append(xmlr.getText());
+            //     result.append("?>");
+            //     break;
+            // case XMLStreamConstants.CDATA:
+            //     result.append("<![CDATA[");
+            //     start = xmlr.getTextStart();
+            //     length = xmlr.getTextLength();
+            //     result.append(new String(xmlr.getTextCharacters(), start, length).trim());
+            //     result.append("]]>");
+            //     break;
+            // case XMLStreamConstants.COMMENT:
+            //     result.append("<!--");
+            //     if (xmlr.hasText())
+            //         result.append(xmlr.getText());
+            //     result.append("-->");
+            //     break;
+            // case XMLStreamConstants.ENTITY_REFERENCE:
+            //     result.append(xmlr.getLocalName() + "=");
+            //     if (xmlr.hasText())
+            //         result.append("[" + xmlr.getText() + "]");
+            //     break;
             case XMLStreamConstants.START_DOCUMENT:
                 result.append("<?xml");
                 result.append(" version='" + xmlr.getVersion() + "'");

@@ -1,13 +1,13 @@
 package org.gottschd;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.xml.stream.XMLStreamReader;
-
 import java.io.OutputStreamWriter;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
+
+import javax.xml.stream.XMLStreamReader;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
@@ -21,6 +21,8 @@ public class EmbeddedXmlParser extends AbstractXmlParser implements Runnable {
     private final OutputStreamWriter dataStream;
     private Thread ownerThread;
 
+    private final XmlParsingResult result = new XmlParsingResult();
+
     /**
      * @throws Exception
      */
@@ -30,11 +32,14 @@ public class EmbeddedXmlParser extends AbstractXmlParser implements Runnable {
         dataStream = new OutputStreamWriter(pop);
     }
 
+    public XmlParsingResult getResult() {
+        return result;
+    }
+
     /**
      *
      */
     public final void feed(char[] textCharacters, int textStart, int textLength) throws Exception {
-        logger.info("feed run in EmbeddedXmlParser");
         dataStream.write(textCharacters, textStart, textLength);
     }
 
@@ -57,22 +62,34 @@ public class EmbeddedXmlParser extends AbstractXmlParser implements Runnable {
         return this;
     }
 
+    private CopyToWriterProcessor copyToWriterProcessor;
+    private Base64ExtractProcessor base64ExtractProcessor;
+
     @Override
     public void run() {
-        logger.info("begin run in EmbeddedXmlParser");
         try {
+            copyToWriterProcessor = new CopyToWriterProcessor();
+            base64ExtractProcessor = new Base64ExtractProcessor() {
+                @Override
+                public void onExtractFinished(byte[] bytes) {
+                    result.getDataOfMyContainer().add(bytes);
+                }
+            };
+
+            // parse
             parse(pip);
+
+            result.setRemainingXml(copyToWriterProcessor.getWriterResult());
+
         } catch (Exception ex) {
             ex.printStackTrace();
         }
 
-        logger.info("exiting run in EmbeddedXmlParser");
     }
 
     @Override
-    protected void processEvent(XMLStreamReader xmlr) {
-        logger.info("processEvent in EmbeddedXmlParser");
-        printEvent(xmlr, "Embedded");
+    protected void processEvent(XMLStreamReader xmlr) throws Exception {
+        copyToWriterProcessor.processEvent(xmlr);
+        base64ExtractProcessor.processEvent(xmlr);
     }
-
 }
