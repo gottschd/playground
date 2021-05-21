@@ -19,7 +19,7 @@ public class EmbeddedXmlParser extends AbstractXmlParser implements Runnable {
     private final PipedOutputStream pop;
     private final PipedInputStream pip;
     private final OutputStreamWriter dataStream;
-    private Thread ownerThread;
+    private Thread embeddedParsingThread;
 
     private final XmlParsingResult result = new XmlParsingResult();
 
@@ -44,22 +44,22 @@ public class EmbeddedXmlParser extends AbstractXmlParser implements Runnable {
     }
 
     /**
+     * @throws Exception
+     */
+    public EmbeddedXmlParser start() throws Exception {
+        embeddedParsingThread = new Thread(this);
+        embeddedParsingThread.start();
+        return this;
+    }
+
+    /**
      *
      */
     public final void stop() throws Exception {
         dataStream.flush();
         dataStream.close();
 
-        ownerThread.join();
-    }
-
-    /**
-     * @throws Exception
-     */
-    public EmbeddedXmlParser start() throws Exception {
-        ownerThread = new Thread(this);
-        ownerThread.start();
-        return this;
+        embeddedParsingThread.join();
     }
 
     private CopyToWriterProcessor copyToWriterProcessor;
@@ -84,7 +84,6 @@ public class EmbeddedXmlParser extends AbstractXmlParser implements Runnable {
         } catch (Exception ex) {
             ex.printStackTrace();
         }
-
     }
 
     @Override

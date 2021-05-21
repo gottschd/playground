@@ -9,12 +9,12 @@ import org.apache.commons.codec.binary.Base64OutputStream;
 
 public abstract class Base64ExtractProcessor {
 
-    private DataConverter currentBase64Extractor;
+    private Base64Extractor currentBase64Extractor;
 
     public void processEvent(XMLStreamReader xmlr) throws Exception {
 
         if( xmlr.isStartElement() && "Data".equals(xmlr.getLocalName()) ) {
-            currentBase64Extractor = new DataConverter();
+            currentBase64Extractor = new Base64Extractor();
             return;
         }
 
@@ -33,11 +33,11 @@ public abstract class Base64ExtractProcessor {
 
     public abstract void onExtractFinished(byte[] bytes);
 
-    private static class DataConverter {
+    private static class Base64Extractor {
         private final ByteArrayOutputStream buf;
         private final OutputStreamWriter dos;
 
-        private DataConverter() {
+        private Base64Extractor() {
 
             buf = new ByteArrayOutputStream();
             dos = new OutputStreamWriter(new Base64OutputStream(buf, false));

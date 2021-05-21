@@ -1,6 +1,5 @@
 package org.gottschd;
 
-import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamReader;
 
 
@@ -11,35 +10,22 @@ public class OuterXmlParser extends AbstractXmlParser {
 
     @Override
     protected void processEvent(XMLStreamReader xmlr) throws Exception {
-        // printEvent(xmlr, "Outer-");
+        if( xmlr.isStartElement() && "B".equals(xmlr.getLocalName()) ) {
+            embeddedParser = new EmbeddedXmlParser().start();
+            return;
+        }
 
-        switch (xmlr.getEventType()) {
-            case XMLStreamConstants.START_ELEMENT:
-                if ("B".equals(xmlr.getLocalName())) {
-                    embeddedParser = new EmbeddedXmlParser().start();
-                }
-                break;
+        if( xmlr.isEndElement() && "B".equals(xmlr.getLocalName()) ) {
+            embeddedParser.stop();
+            result = embeddedParser.getResult();
+            embeddedParser = null;
+            return;
+        }
 
-            case XMLStreamConstants.END_ELEMENT:
-                if ("B".equals(xmlr.getLocalName())) {
-                    embeddedParser.stop();
-                    result = embeddedParser.getResult();
-                    embeddedParser = null;
-                }
-                break;
-
-            case XMLStreamConstants.SPACE:
-            case XMLStreamConstants.CHARACTERS:
-                if (embeddedParser != null) {
-                    embeddedParser.feed(xmlr.getTextCharacters(), xmlr.getTextStart(), xmlr.getTextLength());
-                }
-                break;
-
-            case XMLStreamConstants.CDATA:
-                throw new IllegalStateException("CDATA event captured, what now?");
-
-            default:
-                break;
+        if( xmlr.isCharacters() || xmlr.isWhiteSpace() ) {
+            if (embeddedParser != null) {
+                embeddedParser.feed(xmlr.getTextCharacters(), xmlr.getTextStart(), xmlr.getTextLength());
+            }
         }
     }
 
