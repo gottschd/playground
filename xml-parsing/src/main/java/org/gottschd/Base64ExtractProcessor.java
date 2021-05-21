@@ -3,7 +3,6 @@ package org.gottschd;
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStreamWriter;
 
-import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamReader;
 
 import org.apache.commons.codec.binary.Base64OutputStream;
@@ -14,28 +13,21 @@ public abstract class Base64ExtractProcessor {
 
     public void processEvent(XMLStreamReader xmlr) throws Exception {
 
-        switch (xmlr.getEventType()) {
-            case XMLStreamConstants.START_ELEMENT:
-                if ("Data".equals(xmlr.getLocalName())) {
-                    currentBase64Extractor = new DataConverter();
-                }
-                break;
+        if( xmlr.isStartElement() && "Data".equals(xmlr.getLocalName()) ) {
+            currentBase64Extractor = new DataConverter();
+            return;
+        }
 
-            case XMLStreamConstants.END_ELEMENT:
-                if ("Data".equals(xmlr.getLocalName())) {
-                    onExtractFinished(currentBase64Extractor.getBytes());
-                    currentBase64Extractor = null;
-                }
-                break;
+        if( xmlr.isEndElement() && "Data".equals(xmlr.getLocalName()) ) {
+            onExtractFinished(currentBase64Extractor.getBytes());
+            currentBase64Extractor = null;
+            return;
+        }
 
-            case XMLStreamConstants.SPACE:
-            case XMLStreamConstants.CHARACTERS:
-                if (currentBase64Extractor != null) {
-                    currentBase64Extractor.feed(xmlr.getTextCharacters(), xmlr.getTextStart(), xmlr.getTextLength());
-                }
-                break;
-            default:
-                break;
+        if( xmlr.isCharacters() || xmlr.isWhiteSpace() ) {
+            if (currentBase64Extractor != null) {
+                currentBase64Extractor.feed(xmlr.getTextCharacters(), xmlr.getTextStart(), xmlr.getTextLength());
+            }
         }
     }
 
