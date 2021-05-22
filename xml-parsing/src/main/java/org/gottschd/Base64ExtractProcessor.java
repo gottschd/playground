@@ -34,24 +34,23 @@ public abstract class Base64ExtractProcessor {
     public abstract void onExtractFinished(byte[] bytes);
 
     private static class Base64Extractor {
-        private final ByteArrayOutputStream buf;
-        private final OutputStreamWriter dos;
+        private final ByteArrayOutputStream result;
+        private final OutputStreamWriter sink;
 
         private Base64Extractor() {
 
-            buf = new ByteArrayOutputStream();
-            dos = new OutputStreamWriter(new Base64OutputStream(buf, false));
+            result = new ByteArrayOutputStream();
+            sink = new OutputStreamWriter(new Base64OutputStream(result, false));
         }
 
         public byte[] getBytes() throws Exception {
-            dos.flush();
-            dos.close();
-            return buf.toByteArray();
+            sink.flush();
+            sink.close();
+            return result.toByteArray();
         }
 
         public void feed(char[] textCharacters, int textStart, int textLength) throws Exception {
-            dos.write(textCharacters, textStart, textLength);
+            sink.write(textCharacters, textStart, textLength);
         }
-
     }
 }

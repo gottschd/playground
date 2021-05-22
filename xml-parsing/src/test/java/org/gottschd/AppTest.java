@@ -90,7 +90,7 @@ public class AppTest {
             // append the lorem ipsum text as base64 stream to reach up to 50MB per data
             // container
             try (InputStream in = this.getClass().getResourceAsStream("/lorem_ipsum_expected.txt")) {
-                byte[] loremIpsumBytes = in.readAllBytes();
+                final byte[] loremIpsumBytes = in.readAllBytes();
                 try (OutputStream out = Base64.getEncoder()
                         .wrap(new BufferedOutputStream(Files.newOutputStream(xmlFile, StandardOpenOption.APPEND)))) {
                     for (int j = 0; j < 200_000; j++) {
