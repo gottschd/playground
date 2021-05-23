@@ -20,6 +20,13 @@ public abstract class AbstractXmlParser {
 
     protected final Deque<String> breadCrumb = new LinkedList<>();
 
+    private final String name;
+
+    AbstractXmlParser(String name) {
+        this.name = "-" + name + "-";
+
+    }
+
     /**
      * 
      * @param xmlr
@@ -35,10 +42,19 @@ public abstract class AbstractXmlParser {
      */
     public void parse(InputStream in) throws Exception {
         XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
+
+        // https://bugs.openjdk.java.net/browse/JDK-8175792
+        xmlInputFactory.setProperty( "jdk.xml.cdataChunkSize", 8 * 1024);
+
         XMLStreamReader reader = xmlInputFactory.createXMLStreamReader(in);
+
         while (reader.hasNext()) {
+
             updateBreadCrumb(reader);
-            printCurrentBreadCrumb();
+            //printCurrentBreadCrumb();
+
+            //printEvent(reader, name);
+            
             processEvent(reader);
             reader.next();
         }
@@ -102,9 +118,9 @@ public abstract class AbstractXmlParser {
                 break;
             case XMLStreamConstants.SPACE:
             case XMLStreamConstants.CHARACTERS:
-                int start = xmlr.getTextStart();
+                // int start = xmlr.getTextStart();
                 int length = xmlr.getTextLength();
-                result.append("CHARACTERS(length:" + length + ")");
+                result.append("CHARACTERS(textlength:" + length + "): bufferLength: " + xmlr.getTextCharacters().length);
                 result.append(" ... ");
                 // result.append(new String(xmlr.getTextCharacters(), start, length).trim());
                 break;
@@ -114,13 +130,14 @@ public abstract class AbstractXmlParser {
             //         result.append(xmlr.getText());
             //     result.append("?>");
             //     break;
-            // case XMLStreamConstants.CDATA:
-            //     result.append("<![CDATA[");
-            //     start = xmlr.getTextStart();
-            //     length = xmlr.getTextLength();
-            //     result.append(new String(xmlr.getTextCharacters(), start, length).trim());
-            //     result.append("]]>");
-            //     break;
+            case XMLStreamConstants.CDATA:
+                result.append("<![CDATA[");
+                // start = xmlr.getTextStart();
+                length = xmlr.getTextLength();
+                // result.append("new String(xmlr.getTextCharacters(), start, length).trim()");
+                result.append("(textlength:" + length + "): bufferLength: " + xmlr.getTextCharacters().length);
+                result.append("]]>");
+                break;
             // case XMLStreamConstants.COMMENT:
             //     result.append("<!--");
             //     if (xmlr.hasText())
@@ -147,6 +164,7 @@ public abstract class AbstractXmlParser {
         result.append("]");
 
         logger.info(result.toString());
+        // System.out.println(result.toString());
     }
 
     private static void printName(StringBuilder eventAsString, XMLStreamReader xmlr) {

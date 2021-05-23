@@ -27,8 +27,9 @@ public class EmbeddedXmlParser extends AbstractXmlParser implements Runnable {
      * @throws Exception
      */
     public EmbeddedXmlParser() throws Exception {
+        super("Embedded");
         pop = new PipedOutputStream();
-        pip = new PipedInputStream(pop);
+        pip = new PipedInputStream(pop, 8 * 1024);
         dataStream = new OutputStreamWriter(pop);
     }
 

@@ -56,6 +56,12 @@
 			<version>2.8.2</version>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-text</artifactId>
+			<version>1.9</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 
 
@@ -67,7 +73,7 @@
 				<version>2.22.2</version>
 				<configuration>
 					<configuration>
-						<argLine>@{argLine} -Duser.language=en -Dfile.encoding=UTF-8 -XX:+UnlockCommercialFeatures -XX:+FlightRecorder -XX:FlightRecorderOptions=loglevel=debug -XX:StartFlightRecording=filename=my_recording.jfr,settings=profile</argLine>
+						<argLine>-Xmx2g</argLine>
 					</configuration>
 				</configuration>
 			</plugin>
