@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.xmlunit.matchers.CompareMatcher.isSimilarTo;
 
-import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
@@ -22,7 +21,6 @@ import java.util.Base64;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -32,7 +30,7 @@ import org.xmlunit.input.WhitespaceStrippedSource;
 /**
  * Unit test for simple App.
  */
-public class AppTest {
+public class StaxParserTest {
 
     @ParameterizedTest(name = "#{index} - Run test with args={0}")
     @ValueSource(strings = { "/req_cdata_embedded_small.xml", "/req_escaped_embedded_small.xml" })
