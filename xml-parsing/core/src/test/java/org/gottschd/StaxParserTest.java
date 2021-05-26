@@ -73,11 +73,11 @@ public class StaxParserTest {
         int containerCount = 20;
         int byteCountPerContainer = 50 * 1000 * 1000; // 50MB (1000 based)
         Path bigXmlFile = createBigFile(metadata, containerCount, byteCountPerContainer);
-        final List<byte[]> byteResults = new ArrayList<byte[]>();
+        final List<Integer> byteCountResults = new ArrayList<>();
         CopyToWriterProcessor copyToWriterProcessor = new CopyToWriterProcessor();
         EmbeddedXmlProcessor processor = new EmbeddedXmlProcessor("B",
                 new StaxParser(List.of(copyToWriterProcessor, new Base64ExtractProcessor("Data", bytes -> {
-                    byteResults.add(bytes);
+                    byteCountResults.add(Integer.valueOf(bytes.length));
                 })), "Embedded"));
 
         StaxParser rootParser = new StaxParser(List.of(processor), "Root");
@@ -89,9 +89,9 @@ public class StaxParserTest {
             rootParser.parse(in);
 
             // check bytes arrays
-            assertEquals(containerCount, byteResults.size());
-            for (byte[] content : byteResults) {
-                assertEquals(byteCountPerContainer, content.length);
+            assertEquals(containerCount, byteCountResults.size());
+            for (Integer content : byteCountResults) {
+                assertEquals(byteCountPerContainer, content.intValue());
             }
 
             // check remaining xml
