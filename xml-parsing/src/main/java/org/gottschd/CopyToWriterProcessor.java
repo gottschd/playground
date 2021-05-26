@@ -10,10 +10,11 @@ import javax.xml.stream.XMLStreamWriter;
 /**
  * 
  */
-public class CopyToWriterProcessor {
+public class CopyToWriterProcessor implements EventTypeProcessor {
     private final XMLStreamWriter writer;
     private final StringWriter stringOut = new StringWriter();
     private boolean disableWriter;
+    private String result;
 
     public CopyToWriterProcessor() throws Exception {
         // create writer in thread from which the parsing happens
@@ -25,14 +26,15 @@ public class CopyToWriterProcessor {
      * 
      */
     public String getWriterResult() throws Exception {
-        writer.flush();
-        return stringOut.toString();
+        if (result == null) {
+            writer.flush();
+            result = stringOut.toString();
+        }
+
+        return result;
     }
 
-    /**
-     * @param breadCrumb
-     * 
-     */
+    @Override
     public void processEvent(XMLStreamReader xmlr) throws Exception {
 
         // disable the writer as soon as the element begins
@@ -54,6 +56,12 @@ public class CopyToWriterProcessor {
         }
     }
 
+    /**
+     * 
+     * @param xmlr
+     * @param writer
+     * @throws Exception
+     */
     private static void write(XMLStreamReader xmlr, XMLStreamWriter writer) throws Exception {
         switch (xmlr.getEventType()) {
             case XMLStreamConstants.START_ELEMENT:
@@ -117,7 +125,7 @@ public class CopyToWriterProcessor {
                 writer.writeDTD(xmlr.getText());
                 break;
             default:
-                break;    
+                break;
         }
     }
 }

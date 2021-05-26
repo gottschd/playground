@@ -8,6 +8,7 @@ import static org.xmlunit.matchers.CompareMatcher.isSimilarTo;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedWriter;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -16,7 +17,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.Disabled;
@@ -30,31 +33,36 @@ import org.xmlunit.input.WhitespaceStrippedSource;
  * Unit test for simple App.
  */
 public class AppTest {
-    @Disabled
+
     @ParameterizedTest(name = "#{index} - Run test with args={0}")
     @ValueSource(strings = { "/req_cdata_embedded_small.xml", "/req_escaped_embedded_small.xml" })
     public void parseSmallXml(String xmlFileToParse) throws Exception {
+        // setup test files + parser
+        final List<byte[]> byteResults = new ArrayList<byte[]>();
+        CopyToWriterProcessor copyToWriterProcessor = new CopyToWriterProcessor();
+        EmbeddedXmlProcessor processor = new EmbeddedXmlProcessor("B",
+                new StaxParser(List.of(copyToWriterProcessor, new Base64ExtractProcessor("Data", bytes -> {
+                    byteResults.add(bytes);
+                })), "Embedded"));
+        StaxParser rootParser = new StaxParser(List.of(processor), "Root");
+
         try (InputStream in = this.getClass().getResourceAsStream(xmlFileToParse)) {
-            OuterXmlParser outerXmlParser = new OuterXmlParser();
-            outerXmlParser.parse(in);
-            XmlParsingResult result = outerXmlParser.getXmlParsingResult();
+
+            rootParser.parse(in);
 
             // check bytes arrays
-            assertEquals(2, result.getDataOfMyContainer().size());
-            assertEquals(
-                    Files.readString(Paths.get(this.getClass().getResource("/lorem_ipsum_expected.txt").toURI()),
-                            StandardCharsets.UTF_8),
-                    new String(result.getDataOfMyContainer().get(0), StandardCharsets.UTF_8));
+            assertEquals(2, byteResults.size());
+            assertEquals(Files.readString(Paths.get(this.getClass().getResource("/lorem_ipsum_expected.txt").toURI()),
+                    StandardCharsets.UTF_8), new String(byteResults.get(0), StandardCharsets.UTF_8));
 
-            assertEquals(
-                    Files.readString(Paths.get(this.getClass().getResource("/lorem_ipsum_expected.txt").toURI()),
-                            StandardCharsets.UTF_8),
-                    new String(result.getDataOfMyContainer().get(1), StandardCharsets.UTF_8));
+            assertEquals(Files.readString(Paths.get(this.getClass().getResource("/lorem_ipsum_expected.txt").toURI()),
+                    StandardCharsets.UTF_8), new String(byteResults.get(1), StandardCharsets.UTF_8));
 
             // check remaining xml
-            assertNotNull(result.getRemainingXml());
+            assertNotNull(copyToWriterProcessor.getWriterResult());
             try (InputStream expected = this.getClass().getResourceAsStream("/remaining_expected.xml")) {
-                assertThat(new WhitespaceStrippedSource(Input.fromString(result.getRemainingXml()).build()),
+                assertThat(
+                        new WhitespaceStrippedSource(Input.fromString(copyToWriterProcessor.getWriterResult()).build()),
                         isSimilarTo(new WhitespaceStrippedSource(Input.fromStream(expected).build())));
             }
         }
@@ -63,44 +71,48 @@ public class AppTest {
     @ParameterizedTest(name = "#{index} - Run test with args={0}")
     @EnumSource(value = TestFileMetadata.class)
     public void parseBigXml(TestFileMetadata metadata) throws Exception {
-        long now = System.currentTimeMillis();
-        System.out.println("starting :" + metadata);
-
+        // setup test files + parser
         int containerCount = 20;
-        Path bigXmlFile = createBigFile(metadata, containerCount);
+        int byteCountPerContainer = 50 * 1000 * 1000; // 50MB (1000 based)
+        Path bigXmlFile = createBigFile(metadata, containerCount, byteCountPerContainer);
+        final List<byte[]> byteResults = new ArrayList<byte[]>();
+        CopyToWriterProcessor copyToWriterProcessor = new CopyToWriterProcessor();
+        EmbeddedXmlProcessor processor = new EmbeddedXmlProcessor("B",
+                new StaxParser(List.of(copyToWriterProcessor, new Base64ExtractProcessor("Data", bytes -> {
+                    byteResults.add(bytes);
+                })), "Embedded"));
 
-        try (InputStream in = new BufferedInputStream(Files.newInputStream(bigXmlFile))) {
-            OuterXmlParser outerXmlParser = new OuterXmlParser();
-            outerXmlParser.parse(in);
+        StaxParser rootParser = new StaxParser(List.of(processor), "Root");
 
-            XmlParsingResult result = outerXmlParser.getXmlParsingResult();
+        long now = System.currentTimeMillis();
+        System.out.println("starting parsing:" + metadata);
+        try (InputStream in = Files.newInputStream(bigXmlFile)) {
+
+            rootParser.parse(in);
 
             // check bytes arrays
-            assertEquals(containerCount, result.getDataOfMyContainer().size());
-            // assertEquals(
-            //         Files.readString(Paths.get(this.getClass().getResource("/lorem_ipsum_expected.txt").toURI()),
-            //                 StandardCharsets.UTF_8),
-            //         new String(result.getDataOfMyContainer().get(0), StandardCharsets.UTF_8));
-
-            // assertEquals(
-            //         Files.readString(Paths.get(this.getClass().getResource("/lorem_ipsum_expected.txt").toURI()),
-            //                 StandardCharsets.UTF_8),
-            //         new String(result.getDataOfMyContainer().get(1), StandardCharsets.UTF_8));
+            assertEquals(containerCount, byteResults.size());
+            for (byte[] content : byteResults) {
+                assertEquals(byteCountPerContainer, content.length);
+            }
 
             // check remaining xml
-            assertNotNull(result.getRemainingXml());
-            // try (InputStream expected = this.getClass().getResourceAsStream("/remaining_expected.xml")) {
-            //     assertThat(new WhitespaceStrippedSource(Input.fromString(result.getRemainingXml()).build()),
-            //             isSimilarTo(new WhitespaceStrippedSource(Input.fromStream(expected).build())));
-            // }
+            assertNotNull(copyToWriterProcessor.getWriterResult());
+            try (InputStream expected = this.getClass().getResourceAsStream("/remaining_expected.xml")) {
+                assertThat(
+                        new WhitespaceStrippedSource(Input.fromString(copyToWriterProcessor.getWriterResult()).build()),
+                        isSimilarTo(new WhitespaceStrippedSource(Input.fromStream(expected).build())));
+            }
         }
 
         Files.delete(bigXmlFile);
 
-        System.out.println("finished :" + metadata + ", time: " + TimeUnit.MILLISECONDS.toSeconds( System.currentTimeMillis() - now) );
+        System.out.println("finished parsing :" + metadata + ", time: "
+                + TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - now));
     }
 
-    private Path createBigFile(TestFileMetadata pTestFileMetadata, int containerCount) throws Exception {
+    private Path createBigFile(TestFileMetadata pTestFileMetadata, int containerCount, int bytesPerContainer)
+            throws Exception {
         Path xmlFile = Files.createTempFile("big_xml", ".tmp");
 
         // copy first part
@@ -118,15 +130,25 @@ public class AppTest {
 
             // append the lorem ipsum text as base64 stream to reach up to 50MB per data
             // container
-            try (InputStream in = this.getClass().getResourceAsStream("/lorem_ipsum_expected.txt")) {
-                final byte[] loremIpsumBytes = in.readAllBytes();
-                try (OutputStream out = Base64.getEncoder()
-                        .wrap(new BufferedOutputStream(Files.newOutputStream(xmlFile, StandardOpenOption.APPEND)))) {
-                    for (int j = 0; j < 200_000; j++) {    
-                        out.write(loremIpsumBytes);
-                        out.write(System.lineSeparator().getBytes());
-                    }
+            byte[] lineToWrite;
+            try (InputStream in = this.getClass().getResourceAsStream("/lorem_ipsum_expected.txt");
+                    ByteArrayOutputStream line = new ByteArrayOutputStream()) {
+                line.write(in.readAllBytes());
+                line.write(System.lineSeparator().getBytes());
+                line.flush();
+                lineToWrite = line.toByteArray();
+            }
+
+            try (OutputStream out = Base64.getEncoder()
+                    .wrap(new BufferedOutputStream(Files.newOutputStream(xmlFile, StandardOpenOption.APPEND)))) {
+                int lineIterations = bytesPerContainer / lineToWrite.length;
+                while (lineIterations-- > 0) {
+                    out.write(lineToWrite);
                 }
+
+                // write rest
+                int lineRest = bytesPerContainer % lineToWrite.length;
+                out.write(lineToWrite, 0, lineRest);
             }
 
             try (BufferedWriter writer = Files.newBufferedWriter(xmlFile, StandardOpenOption.APPEND)) {
@@ -141,7 +163,10 @@ public class AppTest {
         }
 
         // copy last part
-        try (InputStream expected = this.getClass().getResourceAsStream(pTestFileMetadata.bottom_template_filename)) {
+        try (
+
+                InputStream expected = this.getClass()
+                        .getResourceAsStream(pTestFileMetadata.bottom_template_filename)) {
             appendInputStreamToFile(expected, xmlFile);
         }
 

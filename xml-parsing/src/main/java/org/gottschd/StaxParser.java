@@ -3,6 +3,7 @@ package org.gottschd;
 import java.io.InputStream;
 import java.util.Deque;
 import java.util.LinkedList;
+import java.util.List;
 
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamConstants;
@@ -14,17 +15,19 @@ import org.slf4j.LoggerFactory;
 /**
  * 
  */
-public abstract class AbstractXmlParser {
+public class StaxParser {
 
-    private static final Logger logger = LoggerFactory.getLogger(AbstractXmlParser.class);
+    private static final Logger logger = LoggerFactory.getLogger(StaxParser.class);
 
-    protected final Deque<String> breadCrumb = new LinkedList<>();
+    private final Deque<String> breadCrumb = new LinkedList<>();
 
     private final String name;
 
-    AbstractXmlParser(String name) {
-        this.name = "-" + name + "-";
+    private final List<EventTypeProcessor> processors;
 
+    public StaxParser(List<EventTypeProcessor> processors, String name) {
+        this.processors = processors;
+        this.name = "-" + name + "-";
     }
 
     /**
@@ -32,7 +35,11 @@ public abstract class AbstractXmlParser {
      * @param xmlr
      * @throws Exception
      */
-    protected abstract void processEvent(XMLStreamReader xmlr) throws Exception;
+    protected void processEvent(XMLStreamReader xmlr) throws Exception {
+        for (EventTypeProcessor p : processors) {
+            p.processEvent(xmlr);
+        }
+    }
 
     /**
      * 
@@ -40,21 +47,21 @@ public abstract class AbstractXmlParser {
      * @return
      * @throws Exception
      */
-    public void parse(InputStream in) throws Exception {
+    public final void parse(InputStream in) throws Exception {
         XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
 
         // https://bugs.openjdk.java.net/browse/JDK-8175792
-        xmlInputFactory.setProperty( "jdk.xml.cdataChunkSize", 8 * 1024);
+        xmlInputFactory.setProperty("jdk.xml.cdataChunkSize", 8 * 1024);
 
         XMLStreamReader reader = xmlInputFactory.createXMLStreamReader(in);
 
         while (reader.hasNext()) {
 
             updateBreadCrumb(reader);
-            //printCurrentBreadCrumb();
 
-            //printEvent(reader, name);
-            
+            // printCurrentBreadCrumb();
+            // printEvent(reader, name);
+
             processEvent(reader);
             reader.next();
         }
@@ -62,7 +69,7 @@ public abstract class AbstractXmlParser {
     }
 
     private void updateBreadCrumb(XMLStreamReader xmlr) {
-        
+
         switch (xmlr.getEventType()) {
             case XMLStreamConstants.START_ELEMENT:
                 breadCrumb.push(xmlr.getLocalName());
@@ -91,7 +98,7 @@ public abstract class AbstractXmlParser {
 
         StringBuilder result = new StringBuilder();
 
-        result.append(debugPrefix + "EVENT("+xmlr.getEventType()+"):[" + xmlr.getLocation().getLineNumber() + "]["
+        result.append(debugPrefix + "EVENT(" + xmlr.getEventType() + "):[" + xmlr.getLocation().getLineNumber() + "]["
                 + xmlr.getLocation().getColumnNumber() + "] ");
 
         result.append(" [");
@@ -120,16 +127,17 @@ public abstract class AbstractXmlParser {
             case XMLStreamConstants.CHARACTERS:
                 // int start = xmlr.getTextStart();
                 int length = xmlr.getTextLength();
-                result.append("CHARACTERS(textlength:" + length + "): bufferLength: " + xmlr.getTextCharacters().length);
+                result.append(
+                        "CHARACTERS(textlength:" + length + "): bufferLength: " + xmlr.getTextCharacters().length);
                 result.append(" ... ");
                 // result.append(new String(xmlr.getTextCharacters(), start, length).trim());
                 break;
             // case XMLStreamConstants.PROCESSING_INSTRUCTION:
-            //     result.append("<?");
-            //     if (xmlr.hasText())
-            //         result.append(xmlr.getText());
-            //     result.append("?>");
-            //     break;
+            // result.append("<?");
+            // if (xmlr.hasText())
+            // result.append(xmlr.getText());
+            // result.append("?>");
+            // break;
             case XMLStreamConstants.CDATA:
                 result.append("<![CDATA[");
                 // start = xmlr.getTextStart();
@@ -139,16 +147,16 @@ public abstract class AbstractXmlParser {
                 result.append("]]>");
                 break;
             // case XMLStreamConstants.COMMENT:
-            //     result.append("<!--");
-            //     if (xmlr.hasText())
-            //         result.append(xmlr.getText());
-            //     result.append("-->");
-            //     break;
+            // result.append("<!--");
+            // if (xmlr.hasText())
+            // result.append(xmlr.getText());
+            // result.append("-->");
+            // break;
             // case XMLStreamConstants.ENTITY_REFERENCE:
-            //     result.append(xmlr.getLocalName() + "=");
-            //     if (xmlr.hasText())
-            //         result.append("[" + xmlr.getText() + "]");
-            //     break;
+            // result.append(xmlr.getLocalName() + "=");
+            // if (xmlr.hasText())
+            // result.append("[" + xmlr.getText() + "]");
+            // break;
             case XMLStreamConstants.START_DOCUMENT:
                 result.append("<?xml");
                 result.append(" version='" + xmlr.getVersion() + "'");
@@ -163,8 +171,8 @@ public abstract class AbstractXmlParser {
         }
         result.append("]");
 
-        logger.info(result.toString());
-        // System.out.println(result.toString());
+        // logger.info(result.toString());
+        System.out.println(result.toString());
     }
 
     private static void printName(StringBuilder eventAsString, XMLStreamReader xmlr) {
