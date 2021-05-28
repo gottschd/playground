@@ -11,6 +11,7 @@ public class XmlParsingController {
 
     @RequestMapping(value = "/komm", method = RequestMethod.POST, consumes = "application/xml", produces = "application/xml")
     public String upload(HttpServletRequest request) throws Exception {
+        Thread.sleep(20 * 1000);
         return "blubb2";
     }
 }

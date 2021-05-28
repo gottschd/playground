@@ -67,8 +67,8 @@ public class StaxParserTest {
     }
 
     @ParameterizedTest(name = "#{index} - Run test with args={0}")
-    @EnumSource(value = TestFileMetadata.class)
-    public void parseBigXml(TestFileMetadata metadata) throws Exception {
+    @EnumSource(value = FileMetadata.class)
+    public void parseBigXml(FileMetadata metadata) throws Exception {
         // setup test files + parser
         int containerCount = 20;
         int byteCountPerContainer = 50 * 1000 * 1000; // 50MB (1000 based)
@@ -109,7 +109,7 @@ public class StaxParserTest {
                 + TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - now));
     }
 
-    private Path createBigFile(TestFileMetadata pTestFileMetadata, int containerCount, int bytesPerContainer)
+    private Path createBigFile(FileMetadata pTestFileMetadata, int containerCount, int bytesPerContainer)
             throws Exception {
         Path xmlFile = Files.createTempFile("big_xml", ".tmp");
 

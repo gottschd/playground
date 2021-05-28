@@ -2,7 +2,7 @@ package org.gottschd;
 
 import org.apache.commons.text.StringEscapeUtils;
 
-public enum TestFileMetadata {
+public enum FileMetadata {
     CDATA_BASED("/req_cdata_embedded_template_top.xml", "/req_cdata_embedded_template_bottom.xml") {
         @Override
         public String toEscapeOrNotToEscape(String pValue) {
@@ -18,13 +18,11 @@ public enum TestFileMetadata {
 
     final String top_template_filename;
     final String bottom_template_filename;
-    
 
-    private TestFileMetadata(String top_file_name, String bottom_file_name) {
+    private FileMetadata(String top_file_name, String bottom_file_name) {
         top_template_filename = top_file_name;
         bottom_template_filename = bottom_file_name;
     }
-
 
     public abstract String toEscapeOrNotToEscape(String pValue);
 }
