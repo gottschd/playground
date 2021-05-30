@@ -28,7 +28,7 @@ public class CreateBigXmlFile {
     private static byte[] getDataLine() throws Exception {
         try (ByteArrayOutputStream line = new ByteArrayOutputStream()) {
             line.write(loremIpsumLine.getBytes(StandardCharsets.UTF_8));
-            line.write(System.lineSeparator().getBytes());
+            line.write(System.lineSeparator().getBytes(StandardCharsets.UTF_8));
             line.flush();
             return line.toByteArray();
         }
@@ -42,9 +42,9 @@ public class CreateBigXmlFile {
         Path xmlFile = Files.createTempFile("big_xml", ".tmp");
 
         // copy first part
-        try (InputStream expected = CreateBigXmlFile.class
+        try (InputStream top = CreateBigXmlFile.class
                 .getResourceAsStream(pTestFileMetadata.top_template_filename)) {
-            appendInputStreamToFile(expected, xmlFile);
+            appendInputStreamToFile(top, xmlFile);
         }
 
         // write the data container up to containerCount (20 maybe) times
@@ -81,9 +81,9 @@ public class CreateBigXmlFile {
         }
 
         // copy last part
-        try (InputStream expected = CreateBigXmlFile.class
+        try (InputStream bottom = CreateBigXmlFile.class
                 .getResourceAsStream(pTestFileMetadata.bottom_template_filename)) {
-            appendInputStreamToFile(expected, xmlFile);
+            appendInputStreamToFile(bottom, xmlFile);
         }
 
         return xmlFile;

@@ -29,9 +29,9 @@ public class XmlParsingController {
         StaxParser embeddedStaxParser = new StaxParser("Embedded");
         embeddedStaxParser.addProcessor(copyToWriterProcessor);
 
-        final List<byte[]> byteCountResults = new ArrayList<>();
+        final List<Integer> byteCountResults = new ArrayList<>();
         embeddedStaxParser.addProcessor(new Base64ExtractProcessor("Data", bytes -> {
-            byteCountResults.add(bytes);
+            byteCountResults.add(Integer.valueOf(bytes.length));
         }));
         EmbeddedXmlProcessor embeddedProcessor = new EmbeddedXmlProcessor("B", embeddedStaxParser);
 
@@ -43,7 +43,7 @@ public class XmlParsingController {
             rootParser.parse(in);
         }
         logger.info("container count: {}", byteCountResults.size());
-        logger.debug("container sizes: {}", byteCountResults);
+        logger.debug("container sizes each: {}", byteCountResults);
 
         logger.info("finished parsing controller, time: {}",
                 TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - now));

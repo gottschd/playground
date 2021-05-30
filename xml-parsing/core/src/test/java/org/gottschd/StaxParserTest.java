@@ -74,7 +74,7 @@ public class StaxParserTest {
     }
 
     @Test
-    public void parseXmlWithErrorinEmbeddedSection() throws Exception {
+    public void parseXmlWithErrorInEmbeddedSection() throws Exception {
         // setup test files + parser
         
         StaxParser embeddedStaxParser = new StaxParser("Embedded");

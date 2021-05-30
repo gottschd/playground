@@ -3,7 +3,7 @@ package org.gottschd.utils;
 import org.apache.commons.text.StringEscapeUtils;
 
 public enum BigFileMetaEnum {
-    CDATA_BASED("req_cdata_embedded_template_top.xml", "req_cdata_embedded_template_bottom.xml") {
+    CDATA_BASED("req_cdata_embedded_template_top.xml", "req_cdata_embdeded_template_bottom.xml") {
         @Override
         public String toEscapeOrNotToEscape(String pValue) {
             return pValue;
