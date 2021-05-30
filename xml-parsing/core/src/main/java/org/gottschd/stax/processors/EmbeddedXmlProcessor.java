@@ -1,5 +1,6 @@
 package org.gottschd.stax.processors;
 
+import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
@@ -19,11 +20,11 @@ import org.gottschd.stax.StaxParser;
 public class EmbeddedXmlProcessor implements EventTypeProcessor {
 
     private PipeToParser embeddedParser;
-    private final String localName;
+    private final String tagNameContainingEmbeddedXml;
     private final StaxParser parserDelegate;
 
     public EmbeddedXmlProcessor(String localName, StaxParser parser) {
-        this.localName = localName;
+        this.tagNameContainingEmbeddedXml = localName;
         this.parserDelegate = parser;
     }
 
@@ -34,12 +35,12 @@ public class EmbeddedXmlProcessor implements EventTypeProcessor {
      */
     @Override
     public void processEvent(XMLStreamReader xmlr) throws Exception {
-        if (xmlr.isStartElement() && localName.equals(xmlr.getLocalName())) {
+        if (xmlr.isStartElement() && tagNameContainingEmbeddedXml.equals(xmlr.getLocalName())) {
             embeddedParser = new PipeToParser(parserDelegate).start();
             return;
         }
 
-        if (xmlr.isEndElement() && localName.equals(xmlr.getLocalName())) {
+        if (xmlr.isEndElement() && tagNameContainingEmbeddedXml.equals(xmlr.getLocalName())) {
             embeddedParser.stop();
             embeddedParser = null;
             return;
@@ -57,11 +58,12 @@ public class EmbeddedXmlProcessor implements EventTypeProcessor {
      */
     private static class PipeToParser implements Callable<Void> {
 
+        private static final ExecutorService executor = Executors.newCachedThreadPool();
+
         private final PipedOutputStream pop;
         private final PipedInputStream pip;
         private final OutputStreamWriter dataStream;
 
-        private static final ExecutorService executor = Executors.newCachedThreadPool();
         private Future<Void> parsingFuture;
 
         private final StaxParser embeddedXmlParser;
@@ -79,19 +81,19 @@ public class EmbeddedXmlProcessor implements EventTypeProcessor {
         }
 
         void stop() throws Exception {
-            dataStream.flush();
             dataStream.close();
             parsingFuture.get();
         }
 
         void feed(char[] textCharacters, int textStart, int textLength) throws Exception {
             dataStream.write(textCharacters, textStart, textLength);
-            dataStream.flush();
         }
 
         @Override
         public Void call() throws Exception {
-            embeddedXmlParser.parse(pip);
+            try (InputStream in = pip) {
+                embeddedXmlParser.parse(in);
+            }
             return null;
         }
     }

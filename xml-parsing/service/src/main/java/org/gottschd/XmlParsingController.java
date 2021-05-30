@@ -22,7 +22,7 @@ public class XmlParsingController {
 
     @PostMapping(value = "/stax", consumes = "application/xml", produces = "application/xml")
     public String uploadStax(HttpServletRequest request) throws Exception {
-        logger.info("start stax parsing controller");
+        logger.info("start stax parsing controller...");
 
         // setup test files + parser
         CopyToWriterProcessor copyToWriterProcessor = new CopyToWriterProcessor();
@@ -30,9 +30,9 @@ public class XmlParsingController {
         embeddedStaxParser.addProcessor(copyToWriterProcessor);
 
         final List<Integer> byteCountResults = new ArrayList<>();
-        embeddedStaxParser.addProcessor(new Base64ExtractProcessor("Data", bytes -> {
-            byteCountResults.add(Integer.valueOf(bytes.length));
-        }));
+        embeddedStaxParser.addProcessor(new Base64ExtractProcessor("Data", bytes -> 
+            byteCountResults.add(Integer.valueOf(bytes.length))
+        ));
         EmbeddedXmlProcessor embeddedProcessor = new EmbeddedXmlProcessor("B", embeddedStaxParser);
 
         StaxParser rootParser = new StaxParser("Root");

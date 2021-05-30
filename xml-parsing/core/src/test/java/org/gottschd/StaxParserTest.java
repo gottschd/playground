@@ -84,7 +84,6 @@ public class StaxParserTest {
                 if( xmlr.isStartElement() && "Throw".equals(xmlr.getLocalName()) )
                     throw new RuntimeException("Ups Throw tag found.");
             }
-            
         });
         EmbeddedXmlProcessor embeddedProcessor = new EmbeddedXmlProcessor("C", embeddedStaxParser);
 
