@@ -7,7 +7,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.ThreadFactory;
 
 import javax.xml.stream.XMLStreamReader;
 
@@ -62,14 +61,7 @@ public class EmbeddedXmlProcessor implements EventTypeProcessor {
         private final PipedInputStream pip;
         private final OutputStreamWriter dataStream;
 
-        private static final ExecutorService executor = Executors.newSingleThreadExecutor(new ThreadFactory() {
-
-            @Override
-            public Thread newThread(Runnable r) {
-                return new Thread(r, "EmbeddedParserThread");
-            }
-
-        });
+        private static final ExecutorService executor = Executors.newCachedThreadPool();
         private Future<Void> parsingFuture;
 
         private final StaxParser embeddedXmlParser;

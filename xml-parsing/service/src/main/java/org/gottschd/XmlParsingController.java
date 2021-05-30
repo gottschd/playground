@@ -20,9 +20,9 @@ import org.springframework.web.bind.annotation.RestController;
 public class XmlParsingController {
     private static final Logger logger = LoggerFactory.getLogger(XmlParsingController.class);
 
-    @PostMapping(value = "/komm", consumes = "application/xml", produces = "application/xml")
-    public String upload(HttpServletRequest request) throws Exception {
-        logger.info("start parsing controller");
+    @PostMapping(value = "/stax", consumes = "application/xml", produces = "application/xml")
+    public String uploadStax(HttpServletRequest request) throws Exception {
+        logger.info("start stax parsing controller");
 
         // setup test files + parser
         CopyToWriterProcessor copyToWriterProcessor = new CopyToWriterProcessor();
@@ -45,7 +45,7 @@ public class XmlParsingController {
         logger.info("container count: {}", byteCountResults.size());
         logger.debug("container sizes each: {}", byteCountResults);
 
-        logger.info("finished parsing controller, time: {}",
+        logger.info("finished stax parsing controller, time: {}",
                 TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - now));
 
         return copyToWriterProcessor.getWriterResult();

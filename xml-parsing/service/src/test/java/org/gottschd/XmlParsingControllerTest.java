@@ -1,4 +1,5 @@
 package org.gottschd;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.xmlunit.matchers.CompareMatcher.isSimilarTo;
 
@@ -16,7 +17,11 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -37,14 +42,14 @@ public class XmlParsingControllerTest {
     int port;
 
     @Test
-    void testXmlParsing() throws Exception {
+    void testStaxXmlParsing() throws Exception {
         // xml file with 20 * 50 MB data = 1GB data (approximated)
         System.out.println("building big xml...");
         Path xmlFile = createBigXmlFile(20, 50 * 1000 * 1000);
         System.out.println("building big xml finished.");
 
         System.out.println("building request...");
-        HttpRequest request = HttpRequest.newBuilder().uri(new URI("http://localhost:" + port + "/komm"))
+        HttpRequest request = HttpRequest.newBuilder().uri(new URI("http://localhost:" + port + "/stax"))
                 .headers("Content-Type", "application/xml").POST(HttpRequest.BodyPublishers.ofInputStream(() -> {
                     try {
                         return Files.newInputStream(xmlFile);
@@ -64,6 +69,50 @@ public class XmlParsingControllerTest {
             assertThat(new WhitespaceStrippedSource(Input.fromString(response.body()).build()),
                     isSimilarTo(new WhitespaceStrippedSource(Input.fromStream(expected).build())));
         }
+
+        Files.delete(xmlFile);
+    }
+
+    @Test
+    void testStaxXmlParsingConcurrent() throws Exception {
+        // xml file with 20 * 50 MB data = 1GB data (approximated)
+        System.out.println("building big xml...");
+        Path xmlFile = createBigXmlFile(20, 50 * 1000 * 1000);
+        System.out.println("building big xml finished.");
+
+        int concurrentRequests = 3;
+
+        System.out.println("building request...");
+        List<HttpRequest> requests = new ArrayList<>();
+        for (int i = 0; i < concurrentRequests; i++) {
+            requests.add(HttpRequest.newBuilder().uri(new URI("http://localhost:" + port + "/stax"))
+                    .headers("Content-Type", "application/xml").POST(HttpRequest.BodyPublishers.ofInputStream( ()-> {
+                        try {
+                            return Files.newInputStream(xmlFile);
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    })).build());
+        }
+
+        System.out.println("building request finished.");
+
+        // send streamed request
+        HttpClient client = HttpClient.newHttpClient();
+        List<CompletableFuture<HttpResponse<String>>> futures = requests.stream()
+                .map(request -> client.sendAsync(request, HttpResponse.BodyHandlers.ofString()))
+                .collect(Collectors.toList());
+
+        // wait and assert each
+        for (CompletableFuture<HttpResponse<String>> f : futures) {
+            try (InputStream expected = new ClassPathResource("/remaining_expected.xml").getInputStream()) {
+                assertThat(new WhitespaceStrippedSource(Input.fromString(f.get().body()).build()),
+                        isSimilarTo(new WhitespaceStrippedSource(Input.fromStream(expected).build())));
+            }
+        }
+
+        System.out.println("testXmlParsingConcurrent... finished");
+        Files.delete(xmlFile);
     }
 
     /**
