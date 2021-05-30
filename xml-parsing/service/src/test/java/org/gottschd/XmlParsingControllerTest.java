@@ -75,7 +75,6 @@ public class XmlParsingControllerTest {
     }
 
     @Test
-    @Disabled("not working right now because of pipe*putstream problems")
     void testStaxXmlParsingConcurrent() throws Exception {
         // xml file with 20 * 50 MB data = 1GB data (approximated)
         System.out.println("building big xml...");
