@@ -1,6 +1,6 @@
 package org.gottschd;
-
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.xmlunit.matchers.CompareMatcher.isSimilarTo;
 
 import java.io.BufferedOutputStream;
 import java.io.BufferedWriter;
@@ -23,6 +23,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.core.io.ClassPathResource;
+import org.xmlunit.builder.Input;
+import org.xmlunit.input.WhitespaceStrippedSource;
 
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 public class XmlParsingControllerTest {
@@ -52,13 +54,17 @@ public class XmlParsingControllerTest {
                 })).build();
         System.out.println("building request finished.");
 
+        // send streamed request
         System.out.println("performing request...");
         HttpResponse<String> response = HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
         System.out.println("perfoming request done.");
 
-        assertNotNull(response.body());
+        // test
+        try (InputStream expected = new ClassPathResource("/remaining_expected.xml").getInputStream()) {
+            assertThat(new WhitespaceStrippedSource(Input.fromString(response.body()).build()),
+                    isSimilarTo(new WhitespaceStrippedSource(Input.fromStream(expected).build())));
+        }
     }
-
 
     /**
      * 
@@ -75,8 +81,7 @@ public class XmlParsingControllerTest {
     /**
      * 
      */
-    public static Path createBigXmlFile(int containerCount, int bytesPerContainer)
-            throws Exception {
+    public static Path createBigXmlFile(int containerCount, int bytesPerContainer) throws Exception {
         Path xmlFile = Files.createTempFile("big_xml", ".tmp");
 
         // copy first part
