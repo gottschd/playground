@@ -1,4 +1,4 @@
-package org.gottschd;
+package org.gottschd.stax.processors;
 
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStreamWriter;
@@ -8,6 +8,7 @@ import java.util.function.Consumer;
 import javax.xml.stream.XMLStreamReader;
 
 import org.apache.commons.codec.binary.Base64OutputStream;
+import org.gottschd.stax.EventTypeProcessor;
 
 public class Base64ExtractProcessor implements EventTypeProcessor {
 

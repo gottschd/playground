@@ -1,4 +1,4 @@
-package org.gottschd;
+package org.gottschd.stax.processors;
 
 import java.io.StringWriter;
 
@@ -6,6 +6,8 @@ import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamReader;
 import javax.xml.stream.XMLStreamWriter;
+
+import org.gottschd.stax.EventTypeProcessor;
 
 /**
  * 

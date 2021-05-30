@@ -1,15 +1,19 @@
-package org.gottschd;
+package org.gottschd.stax.processors;
 
 import java.io.OutputStreamWriter;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 
 import javax.xml.stream.XMLStreamReader;
+
+import org.gottschd.stax.EventTypeProcessor;
+import org.gottschd.stax.StaxParser;
 
 /**
  * Embedded xml must be processed in another thread

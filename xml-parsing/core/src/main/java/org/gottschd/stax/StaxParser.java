@@ -1,6 +1,7 @@
-package org.gottschd;
+package org.gottschd.stax;
 
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
@@ -23,11 +24,20 @@ public class StaxParser {
 
     private final String name;
 
-    private final List<EventTypeProcessor> processors;
+    private final List<EventTypeProcessor> processors = new ArrayList<>();
 
-    public StaxParser(List<EventTypeProcessor> processors, String name) {
-        this.processors = processors;
+    /**
+     * 
+     */
+    public StaxParser(String name) {
         this.name = "-" + name + "-";
+    }
+
+    /**
+     *  
+     */
+    public void addProcessor(EventTypeProcessor processor) {
+        this.processors.add(processor);
     }
 
     /**
@@ -59,8 +69,12 @@ public class StaxParser {
 
             updateBreadCrumb(reader);
 
-            // printCurrentBreadCrumb();
-            // printEvent(reader, name);
+            if( logger.isDebugEnabled() ) {
+                logger.debug("{} Current breadcrumb position: {}", name, breadCrumb);
+
+                String eventPrint = printEventToString(reader, name);
+                logger.debug( eventPrint );
+            }
 
             processEvent(reader);
             reader.next();
@@ -84,17 +98,10 @@ public class StaxParser {
 
     /**
      * 
-     */
-    public void printCurrentBreadCrumb() {
-        logger.info("Current breadcrumb position: {}", breadCrumb);
-    }
-
-    /**
-     * 
      * @param xmlr
      * @param debugPrefix
      */
-    protected void printEvent(XMLStreamReader xmlr, String debugPrefix) {
+    protected String printEventToString(XMLStreamReader xmlr, String debugPrefix) {
 
         StringBuilder result = new StringBuilder();
 
@@ -171,8 +178,7 @@ public class StaxParser {
         }
         result.append("]");
 
-        // logger.info(result.toString());
-        System.out.println(result.toString());
+        return result.toString();
     }
 
     private static void printName(StringBuilder eventAsString, XMLStreamReader xmlr) {
@@ -224,4 +230,5 @@ public class StaxParser {
         else
             eventAsString.append("xmlns:" + prefix + "='" + uri + "'");
     }
+
 }

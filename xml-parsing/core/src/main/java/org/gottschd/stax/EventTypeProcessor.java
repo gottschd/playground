@@ -1,4 +1,4 @@
-package org.gottschd;
+package org.gottschd.stax;
 
 import javax.xml.stream.XMLStreamReader;
 

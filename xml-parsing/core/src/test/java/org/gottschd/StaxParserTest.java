@@ -3,26 +3,27 @@ package org.gottschd;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.xmlunit.matchers.CompareMatcher.isSimilarTo;
 
-import java.io.BufferedOutputStream;
-import java.io.BufferedWriter;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
+import javax.xml.stream.XMLStreamReader;
+
+import org.gottschd.stax.EventTypeProcessor;
+import org.gottschd.stax.StaxParser;
+import org.gottschd.stax.processors.Base64ExtractProcessor;
+import org.gottschd.stax.processors.CopyToWriterProcessor;
+import org.gottschd.stax.processors.EmbeddedXmlProcessor;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.xmlunit.builder.Input;
 import org.xmlunit.input.WhitespaceStrippedSource;
@@ -36,13 +37,19 @@ public class StaxParserTest {
     @ValueSource(strings = { "/req_cdata_embedded_small.xml", "/req_escaped_embedded_small.xml" })
     public void parseSmallXml(String xmlFileToParse) throws Exception {
         // setup test files + parser
-        final List<byte[]> byteResults = new ArrayList<byte[]>();
+        
         CopyToWriterProcessor copyToWriterProcessor = new CopyToWriterProcessor();
-        EmbeddedXmlProcessor processor = new EmbeddedXmlProcessor("B",
-                new StaxParser(List.of(copyToWriterProcessor, new Base64ExtractProcessor("Data", bytes -> {
-                    byteResults.add(bytes);
-                })), "Embedded"));
-        StaxParser rootParser = new StaxParser(List.of(processor), "Root");
+        StaxParser embeddedStaxParser = new StaxParser("Embedded");
+        embeddedStaxParser.addProcessor(copyToWriterProcessor);
+        
+        final List<byte[]> byteResults = new ArrayList<byte[]>();
+        embeddedStaxParser.addProcessor(new Base64ExtractProcessor("Data", bytes -> {
+            byteResults.add(bytes);
+        }));
+        EmbeddedXmlProcessor embeddedProcessor = new EmbeddedXmlProcessor("B", embeddedStaxParser);
+
+        StaxParser rootParser = new StaxParser("Root");
+        rootParser.addProcessor(embeddedProcessor);
 
         try (InputStream in = this.getClass().getResourceAsStream(xmlFileToParse)) {
 
@@ -66,115 +73,30 @@ public class StaxParserTest {
         }
     }
 
-    @ParameterizedTest(name = "#{index} - Run test with args={0}")
-    @EnumSource(value = FileMetadata.class)
-    public void parseBigXml(FileMetadata metadata) throws Exception {
+    @Test
+    public void parseXmlWithErrorinEmbeddedSection() throws Exception {
         // setup test files + parser
-        int containerCount = 20;
-        int byteCountPerContainer = 50 * 1000 * 1000; // 50MB (1000 based)
-        Path bigXmlFile = createBigFile(metadata, containerCount, byteCountPerContainer);
-        final List<Integer> byteCountResults = new ArrayList<>();
-        CopyToWriterProcessor copyToWriterProcessor = new CopyToWriterProcessor();
-        EmbeddedXmlProcessor processor = new EmbeddedXmlProcessor("B",
-                new StaxParser(List.of(copyToWriterProcessor, new Base64ExtractProcessor("Data", bytes -> {
-                    byteCountResults.add(Integer.valueOf(bytes.length));
-                })), "Embedded"));
+        
+        StaxParser embeddedStaxParser = new StaxParser("Embedded");
+        embeddedStaxParser.addProcessor(new EventTypeProcessor(){
+            @Override
+            public void processEvent(XMLStreamReader xmlr) throws Exception {
+                if( xmlr.isStartElement() && "Throw".equals(xmlr.getLocalName()) )
+                    throw new RuntimeException("Ups Throw tag found.");
+            }
+            
+        });
+        EmbeddedXmlProcessor embeddedProcessor = new EmbeddedXmlProcessor("C", embeddedStaxParser);
 
-        StaxParser rootParser = new StaxParser(List.of(processor), "Root");
+        StaxParser rootParser = new StaxParser("Root");
+        rootParser.addProcessor(embeddedProcessor);
 
-        long now = System.currentTimeMillis();
-        System.out.println("starting parsing:" + metadata);
-        try (InputStream in = Files.newInputStream(bigXmlFile)) {
-
+        String xmlString = "<A><B>ValueOuter</B><C><![CDATA[<Inner><Throw/></Inner>]]></C></A>";
+        try (InputStream in = new ByteArrayInputStream(xmlString.getBytes())) {
             rootParser.parse(in);
-
-            // check bytes arrays
-            assertEquals(containerCount, byteCountResults.size());
-            for (Integer content : byteCountResults) {
-                assertEquals(byteCountPerContainer, content.intValue());
-            }
-
-            // check remaining xml
-            assertNotNull(copyToWriterProcessor.getWriterResult());
-            try (InputStream expected = this.getClass().getResourceAsStream("/remaining_expected.xml")) {
-                assertThat(
-                        new WhitespaceStrippedSource(Input.fromString(copyToWriterProcessor.getWriterResult()).build()),
-                        isSimilarTo(new WhitespaceStrippedSource(Input.fromStream(expected).build())));
-            }
-        }
-
-        Files.delete(bigXmlFile);
-
-        System.out.println("finished parsing :" + metadata + ", time: "
-                + TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - now));
-    }
-
-    private Path createBigFile(FileMetadata pTestFileMetadata, int containerCount, int bytesPerContainer)
-            throws Exception {
-        Path xmlFile = Files.createTempFile("big_xml", ".tmp");
-
-        // copy first part
-        try (InputStream expected = this.getClass().getResourceAsStream(pTestFileMetadata.top_template_filename)) {
-            appendInputStreamToFile(expected, xmlFile);
-        }
-
-        // write the data container up to containerCount (20 maybe) times
-        for (int i = 0; i < containerCount; i++) {
-            try (BufferedWriter writer = Files.newBufferedWriter(xmlFile, StandardOpenOption.APPEND)) {
-                writer.write(pTestFileMetadata.toEscapeOrNotToEscape("<MyContainer>"));
-                writer.write(System.lineSeparator());
-                writer.write(pTestFileMetadata.toEscapeOrNotToEscape("<Data>"));
-            }
-
-            // append the lorem ipsum text as base64 stream to reach up to 50MB per data
-            // container
-            byte[] lineToWrite;
-            try (InputStream in = this.getClass().getResourceAsStream("/lorem_ipsum_expected.txt");
-                    ByteArrayOutputStream line = new ByteArrayOutputStream()) {
-                line.write(in.readAllBytes());
-                line.write(System.lineSeparator().getBytes());
-                line.flush();
-                lineToWrite = line.toByteArray();
-            }
-
-            try (OutputStream out = Base64.getEncoder()
-                    .wrap(new BufferedOutputStream(Files.newOutputStream(xmlFile, StandardOpenOption.APPEND)))) {
-                int lineIterations = bytesPerContainer / lineToWrite.length;
-                while (lineIterations-- > 0) {
-                    out.write(lineToWrite);
-                }
-
-                // write rest
-                int lineRest = bytesPerContainer % lineToWrite.length;
-                out.write(lineToWrite, 0, lineRest);
-            }
-
-            try (BufferedWriter writer = Files.newBufferedWriter(xmlFile, StandardOpenOption.APPEND)) {
-                writer.write(System.lineSeparator());
-                writer.write(pTestFileMetadata.toEscapeOrNotToEscape("</Data>"));
-                writer.write(System.lineSeparator());
-                writer.write(pTestFileMetadata.toEscapeOrNotToEscape("<FileType><F>95</F><Type>txt</Type></FileType>"));
-                writer.write(System.lineSeparator());
-                writer.write(pTestFileMetadata.toEscapeOrNotToEscape("</MyContainer>"));
-                writer.write(System.lineSeparator());
-            }
-        }
-
-        // copy last part
-        try (
-
-                InputStream expected = this.getClass()
-                        .getResourceAsStream(pTestFileMetadata.bottom_template_filename)) {
-            appendInputStreamToFile(expected, xmlFile);
-        }
-
-        return xmlFile;
-    }
-
-    private static void appendInputStreamToFile(InputStream inputStream, Path file) throws IOException {
-        try (OutputStream outputStream = new BufferedOutputStream(
-                Files.newOutputStream(file, StandardOpenOption.APPEND))) {
-            inputStream.transferTo(outputStream);
+            fail("expected runtime exception for embedded content not thrown");
+        } catch (Exception ex) {
+            assertTrue(ex.getMessage().contains("Ups Throw tag found"));
         }
     }
 }
