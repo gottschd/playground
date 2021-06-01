@@ -1,6 +1,7 @@
 package org.gottschd;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.xmlunit.matchers.CompareMatcher.isSimilarTo;
 
 import java.io.BufferedOutputStream;
@@ -23,7 +24,6 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
@@ -43,7 +43,55 @@ public class XmlParsingControllerTest {
     int port;
 
     @Test
-    void testStaxXmlParsing() throws Exception {
+    void testStaxXmlParsingWithXmlB() throws Exception {
+        System.out.println("building big xml finished.");
+
+        System.out.println("building request...");
+        HttpRequest request = HttpRequest.newBuilder().uri(new URI("http://localhost:" + port + "/stax"))
+                .headers("Content-Type", "application/xml").POST(HttpRequest.BodyPublishers.ofInputStream(() -> {
+                    try {
+                        return new ClassPathResource("/req_xml_B.xml").getInputStream();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                })).build();
+        System.out.println("building request finished.");
+
+        // send streamed request
+        System.out.println("performing request...");
+        HttpResponse<String> response = HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
+        System.out.println("performing request done.");
+
+        
+        assertEquals(200, response.statusCode());
+    }
+
+    @Test
+    void testStaxXmlParsingWithXmlB_tooBig() throws Exception {
+        System.out.println("building big xml finished.");
+
+        System.out.println("building request...");
+        HttpRequest request = HttpRequest.newBuilder().uri(new URI("http://localhost:" + port + "/stax"))
+                .headers("Content-Type", "application/xml").POST(HttpRequest.BodyPublishers.ofInputStream(() -> {
+                    try {
+                        return new ClassPathResource("/req_xml_B_tooBig.xml").getInputStream();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                })).build();
+        System.out.println("building request finished.");
+
+        // send streamed request
+        System.out.println("performing request...");
+        HttpResponse<String> response = HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
+        System.out.println("performing request done.");
+
+        assertEquals(500, response.statusCode());
+    }
+
+    // @Disabled
+    @Test
+    void testStaxXmlParsingWithXmlA() throws Exception {
         // xml file with 20 * 50 MB data = 1GB data (approximated)
         System.out.println("building big xml...");
         Path xmlFile = createBigXmlFile(20, 50 * 1000 * 1000);
@@ -63,7 +111,7 @@ public class XmlParsingControllerTest {
         // send streamed request
         System.out.println("performing request...");
         HttpResponse<String> response = HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
-        System.out.println("perfoming request done.");
+        System.out.println("performing request done.");
 
         // test
         try (InputStream expected = new ClassPathResource("/remaining_expected.xml").getInputStream()) {
@@ -74,8 +122,9 @@ public class XmlParsingControllerTest {
         Files.delete(xmlFile);
     }
 
+    // @Disabled
     @Test
-    void testStaxXmlParsingConcurrent() throws Exception {
+    void testStaxXmlParsingConcurrentWithXmlA() throws Exception {
         // xml file with 20 * 50 MB data = 1GB data (approximated)
         System.out.println("building big xml...");
         final Path xmlFile = createBigXmlFile(20, 50 * 1000 * 1000);

@@ -30,13 +30,18 @@ public class XmlParsingController {
         embeddedStaxParser.addProcessor(copyToWriterProcessor);
 
         final List<Integer> byteCountResults = new ArrayList<>();
-        embeddedStaxParser.addProcessor(new Base64ExtractProcessor("Data", bytes -> 
-            byteCountResults.add(Integer.valueOf(bytes.length))
-        ));
+        embeddedStaxParser.addProcessor(
+                new Base64ExtractProcessor("Data", bytes -> byteCountResults.add(Integer.valueOf(bytes.length))));
         EmbeddedXmlProcessor embeddedProcessor = new EmbeddedXmlProcessor("B", embeddedStaxParser);
 
         StaxParser rootParser = new StaxParser("Root");
         rootParser.addProcessor(embeddedProcessor);
+
+        DetectMaxCharacterCountProcessor characterCountProcessor = new DetectMaxCharacterCountProcessor("myHoniggut",
+                8 * 1000L, counted -> {
+                    throw new RuntimeException("too large: " + counted);
+                });
+        rootParser.addProcessor(characterCountProcessor);
 
         long now = System.currentTimeMillis();
         try (InputStream in = request.getInputStream()) {
@@ -44,6 +49,8 @@ public class XmlParsingController {
         }
         logger.info("container count: {}", byteCountResults.size());
         logger.debug("container sizes each: {}", byteCountResults);
+
+        logger.info("character count root for <myHoniggut>: {}", characterCountProcessor.getCountedCharaters());
 
         logger.info("finished stax parsing controller, time: {}",
                 TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - now));
