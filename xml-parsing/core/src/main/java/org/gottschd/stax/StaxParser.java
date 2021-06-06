@@ -231,4 +231,11 @@ public class StaxParser {
             eventAsString.append("xmlns:" + prefix + "='" + uri + "'");
     }
 
+    /**
+     * 
+     */ 
+    public String getName() {
+        return name;
+    }
+
 }

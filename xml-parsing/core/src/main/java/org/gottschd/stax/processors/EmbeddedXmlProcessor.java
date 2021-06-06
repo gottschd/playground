@@ -100,7 +100,8 @@ public class EmbeddedXmlProcessor implements EventTypeProcessor {
                 // due to the nature of the async parsing/feeding some errors
                 // occurs lazy during the parsing, thus log any error but throw the exception
                 // further up.
-                logger.error("Error during parsing in another thread.", t);
+                logger.error("Error during parsing in another thread for parser '" + embeddedXmlParser.getName() + "'.",
+                        t);
                 throw t;
             }
             return null;

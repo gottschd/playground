@@ -2,6 +2,7 @@ package org.gottschd;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -15,13 +16,16 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamReader;
 
 import org.gottschd.stax.EventTypeProcessor;
 import org.gottschd.stax.StaxParser;
 import org.gottschd.stax.processors.Base64ExtractProcessor;
 import org.gottschd.stax.processors.CopyToWriterProcessor;
+import org.gottschd.stax.processors.DetectXmlTag;
 import org.gottschd.stax.processors.EmbeddedXmlProcessor;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -76,8 +80,7 @@ public class StaxParserTest {
 
     @ParameterizedTest(name = "#{index} - Run test with args={0}")
     @ValueSource(strings = { "/req_cdata_embedded_small.xml", "/req_escaped_embedded_small.xml" })
-    // @ValueSource(strings = { "/req_cdata_embedded_small.xml" })
-    public void parseSmallXmlwithStreamSink(String xmlFileToParse) throws Exception {
+    public void parseSmallXmlWithStreamSink(String xmlFileToParse) throws Exception {
         // setup test files + parser
 
         ByteArrayOutputStream sink = new ByteArrayOutputStream();
@@ -117,6 +120,55 @@ public class StaxParserTest {
                         isSimilarTo(new WhitespaceStrippedSource(Input.fromStream(expected).build())));
             }
         }
+    }
+
+    @ParameterizedTest(name = "#{index} - Run test with args={0}")
+    @ValueSource(strings = { "/req_cdata_embedded_small.xml", "/req_xml_B.xml" })
+    public void parseSmallXmlCheckWhichTypeOfXml(String xmlFileToParse) throws Exception {
+        // setup test files + parser
+
+        ByteArrayOutputStream sink = new ByteArrayOutputStream();
+        CopyDocumentFilteredToByteArrayProcessor copyProcessors = new CopyDocumentFilteredToByteArrayProcessor(sink);
+
+        StaxParser embeddedStaxParser = new StaxParser("Embedded");
+        embeddedStaxParser.addProcessor(copyProcessors);
+
+        final List<byte[]> byteResults = new ArrayList<byte[]>();
+        embeddedStaxParser.addProcessor(new Base64ExtractProcessor("Data", bytes -> {
+            byteResults.add(bytes);
+        }));
+        EmbeddedXmlProcessor embeddedProcessor = new EmbeddedXmlProcessor("B", embeddedStaxParser);
+
+        StaxParser rootParser = new StaxParser("Root");
+        rootParser.addProcessor(embeddedProcessor);
+
+        final AtomicBoolean isMyHoniggutXml = new AtomicBoolean(false);
+        final AtomicBoolean isBXml = new AtomicBoolean(false);
+
+        rootParser.addProcessor(new DetectXmlTag("myHoniggut", eventType -> {
+            if( XMLStreamConstants.START_ELEMENT == eventType.intValue() )
+                isMyHoniggutXml.set(true); // it is a myHoniggut Xml as soon as we found the start tag
+        }));
+        rootParser.addProcessor(new DetectXmlTag("B", eventType -> {
+            if( XMLStreamConstants.START_ELEMENT == eventType.intValue() )
+                isBXml.set(true); // it is a B Xml as soon as we found the start tag
+        }));
+
+        try (InputStream in = this.getClass().getResourceAsStream(xmlFileToParse)) {
+            rootParser.parse(in);
+            copyProcessors.finish();
+        }
+
+        if( xmlFileToParse.equals("/req_cdata_embedded_small.xml") ) {
+            assertTrue(isBXml.get());
+            assertFalse(isMyHoniggutXml.get());
+        } else if( xmlFileToParse.equals("/req_xml_B.xml") ) {
+            assertFalse(isBXml.get());
+            assertTrue(isMyHoniggutXml.get());
+        } else {
+            fail("unknown xml type");
+        }
+
     }
 
     @Test
