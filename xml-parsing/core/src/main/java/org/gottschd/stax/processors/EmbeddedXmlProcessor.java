@@ -13,6 +13,8 @@ import javax.xml.stream.XMLStreamReader;
 
 import org.gottschd.stax.EventTypeProcessor;
 import org.gottschd.stax.StaxParser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Embedded xml must be processed in another thread
@@ -57,6 +59,7 @@ public class EmbeddedXmlProcessor implements EventTypeProcessor {
      * 
      */
     private static class PipeToParser implements Callable<Void> {
+        private static final Logger logger = LoggerFactory.getLogger(PipeToParser.class);
 
         private static final ExecutorService executor = Executors.newCachedThreadPool();
 
@@ -93,6 +96,12 @@ public class EmbeddedXmlProcessor implements EventTypeProcessor {
         public Void call() throws Exception {
             try (InputStream in = pip) {
                 embeddedXmlParser.parse(in);
+            } catch (Throwable t) {
+                // due to the nature of the async parsing/feeding some errors
+                // occurs lazy during the parsing, thus log any error but throw the exception
+                // further up.
+                logger.error("Error during parsing in another thread.", t);
+                throw t;
             }
             return null;
         }

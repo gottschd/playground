@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import static org.xmlunit.matchers.CompareMatcher.isSimilarTo;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -37,11 +38,11 @@ public class StaxParserTest {
     @ValueSource(strings = { "/req_cdata_embedded_small.xml", "/req_escaped_embedded_small.xml" })
     public void parseSmallXml(String xmlFileToParse) throws Exception {
         // setup test files + parser
-        
+
         CopyToWriterProcessor copyToWriterProcessor = new CopyToWriterProcessor();
         StaxParser embeddedStaxParser = new StaxParser("Embedded");
         embeddedStaxParser.addProcessor(copyToWriterProcessor);
-        
+
         final List<byte[]> byteResults = new ArrayList<byte[]>();
         embeddedStaxParser.addProcessor(new Base64ExtractProcessor("Data", bytes -> {
             byteResults.add(bytes);
@@ -73,15 +74,60 @@ public class StaxParserTest {
         }
     }
 
+    @ParameterizedTest(name = "#{index} - Run test with args={0}")
+    @ValueSource(strings = { "/req_cdata_embedded_small.xml", "/req_escaped_embedded_small.xml" })
+    // @ValueSource(strings = { "/req_cdata_embedded_small.xml" })
+    public void parseSmallXmlwithStreamSink(String xmlFileToParse) throws Exception {
+        // setup test files + parser
+
+        ByteArrayOutputStream sink = new ByteArrayOutputStream();
+        CopyDocumentFilteredToByteArrayProcessor copyProcessors = new CopyDocumentFilteredToByteArrayProcessor(sink);
+
+        StaxParser embeddedStaxParser = new StaxParser("Embedded");
+        embeddedStaxParser.addProcessor(copyProcessors);
+
+        final List<byte[]> byteResults = new ArrayList<byte[]>();
+        embeddedStaxParser.addProcessor(new Base64ExtractProcessor("Data", bytes -> {
+            byteResults.add(bytes);
+        }));
+        EmbeddedXmlProcessor embeddedProcessor = new EmbeddedXmlProcessor("B", embeddedStaxParser);
+
+        StaxParser rootParser = new StaxParser("Root");
+        rootParser.addProcessor(embeddedProcessor);
+
+        try (InputStream in = this.getClass().getResourceAsStream(xmlFileToParse)) {
+
+            rootParser.parse(in);
+
+            copyProcessors.finish();
+
+            // check bytes arrays
+            assertEquals(2, byteResults.size());
+            assertEquals(Files.readString(Paths.get(this.getClass().getResource("/lorem_ipsum_expected.txt").toURI()),
+                    StandardCharsets.UTF_8), new String(byteResults.get(0), StandardCharsets.UTF_8));
+
+            assertEquals(Files.readString(Paths.get(this.getClass().getResource("/lorem_ipsum_expected.txt").toURI()),
+                    StandardCharsets.UTF_8), new String(byteResults.get(1), StandardCharsets.UTF_8));
+
+            // check remaining xml
+            System.out.println("sink size: " + sink.size());
+            assertTrue(sink.size() > 0);
+            try (InputStream expected = this.getClass().getResourceAsStream("/remaining_expected.xml")) {
+                assertThat(new WhitespaceStrippedSource(Input.fromString(sink.toString()).build()),
+                        isSimilarTo(new WhitespaceStrippedSource(Input.fromStream(expected).build())));
+            }
+        }
+    }
+
     @Test
     public void parseXmlWithErrorInEmbeddedSection() throws Exception {
         // setup test files + parser
-        
+
         StaxParser embeddedStaxParser = new StaxParser("Embedded");
-        embeddedStaxParser.addProcessor(new EventTypeProcessor(){
+        embeddedStaxParser.addProcessor(new EventTypeProcessor() {
             @Override
             public void processEvent(XMLStreamReader xmlr) throws Exception {
-                if( xmlr.isStartElement() && "Throw".equals(xmlr.getLocalName()) )
+                if (xmlr.isStartElement() && "Throw".equals(xmlr.getLocalName()))
                     throw new RuntimeException("Ups Throw tag found.");
             }
         });

@@ -1,6 +1,6 @@
-package org.gottschd.stax.processors;
+package org.gottschd;
 
-import java.io.StringWriter;
+import java.io.OutputStream;
 
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamConstants;
@@ -12,34 +12,22 @@ import org.gottschd.stax.EventTypeProcessor;
 /**
  * 
  */
-public class CopyToWriterProcessor implements EventTypeProcessor {
+public class CopyDocumentFilteredToByteArrayProcessor implements EventTypeProcessor {
     private final XMLStreamWriter writer;
-    private final StringWriter stringOut = new StringWriter();
     private boolean copyToWriter = true;
-    private String result;
+    private final OutputStream sink;
 
-    public CopyToWriterProcessor() throws Exception {
+    public CopyDocumentFilteredToByteArrayProcessor(OutputStream sink) throws Exception {
+        this.sink = sink;
+
         // create writer in thread from which the parsing happens
         XMLOutputFactory outputFactory = XMLOutputFactory.newInstance();
-        writer = outputFactory.createXMLStreamWriter(stringOut);
-    }
-
-    /**
-     * 
-     */
-    public String getWriterResult() throws Exception {
-        if (result == null) {
-            writer.flush();
-            writer.close();
-            result = stringOut.toString();
-        }
-
-        return result;
+        writer = outputFactory.createXMLStreamWriter(this.sink);
     }
 
     @Override
     public void processEvent(XMLStreamReader xmlr) throws Exception {
-
+        
         // disable the writer as soon as the element begins
         if (xmlr.isStartElement() && "MyContainer".equals(xmlr.getLocalName())) {
             copyToWriter = false;
@@ -57,6 +45,15 @@ public class CopyToWriterProcessor implements EventTypeProcessor {
         if (copyToWriter) {
             write(xmlr, writer);
         }
+    }
+
+    /**
+     * 
+     */ 
+    public void finish() throws Exception{
+        writer.flush();
+        sink.flush();
+        writer.close();
     }
 
     /**

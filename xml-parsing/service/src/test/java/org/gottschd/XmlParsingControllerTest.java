@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
@@ -43,6 +44,7 @@ public class XmlParsingControllerTest {
     int port;
 
     @Test
+    // @Disabled
     void testStaxXmlParsingWithXmlB() throws Exception {
         System.out.println("building big xml finished.");
 
@@ -67,6 +69,7 @@ public class XmlParsingControllerTest {
     }
 
     @Test
+    // @Disabled
     void testStaxXmlParsingWithXmlB_tooBig() throws Exception {
         System.out.println("building big xml finished.");
 
