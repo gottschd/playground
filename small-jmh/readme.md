@@ -1,4 +1,4 @@
 # Notes
 
 - mvn package
-- >java -jar target\benchmarks.jar BenchmarkLanguageUtils
+- >java -jar target/benchmarks.jar BenchmarkLanguageUtils
