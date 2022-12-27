@@ -15,7 +15,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
-        <jmh.version>1.28</jmh.version>
+        <jmh.version>1.34</jmh.version>
     </properties>
 
 
@@ -38,7 +38,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>3.2.0</version>
                 <executions>
                     <!-- Attach the shade into the package phase -->
                     <execution>
