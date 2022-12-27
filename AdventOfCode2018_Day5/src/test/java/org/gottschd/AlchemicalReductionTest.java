@@ -1,55 +1,51 @@
 package org.gottschd;
 
-import static org.junit.Assert.assertEquals;
 
-import java.util.ArrayList;
-import java.util.List;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
+import java.util.stream.Stream;
 
-@RunWith(Parameterized.class)
-public class AlchemicalReductionTest {
-	private final AlchemicalReductionable reducer;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
-	public AlchemicalReductionTest(AlchemicalReductionable pReducer) {
-		reducer = pReducer;
+
+class AlchemicalReductionTest {
+
+	static Stream<AlchemicalReductionable> reducerImplStream() {
+		return Stream.of( 
+			new AlchemicalReductionVersion001() ,
+			new AlchemicalReductionVersion002(), 
+			new AlchemicalReductionVersion003() , 
+			new AlchemicalReductionVersion004());
 	}
 
-	@Parameters
-	public static List<Object[]> getParameters() {
-		List<Object[]> params = new ArrayList<>();
-		params.add(new Object[] { new AlchemicalReductionVersion001() });
-		params.add(new Object[] { new AlchemicalReductionVersion002() });
-		params.add(new Object[] { new AlchemicalReductionVersion003() });
-		params.add(new Object[] { new AlchemicalReductionVersion004() });
-		return params;
-	}
-
-	@Test
-	public void testReduction() {
+	@ParameterizedTest
+	@MethodSource("reducerImplStream")
+	void testReduction(AlchemicalReductionable reducer) {
 		assertEquals("dabCBAcaDA", reducer.reduce("dabAcCaCBAcCcaDA"));
 	}
 
-	@Test
-	public void testReductionEmpty() {
+	@ParameterizedTest
+	@MethodSource("reducerImplStream")
+	void testReductionEmpty(AlchemicalReductionable reducer) {
 		assertEquals("", reducer.reduce(""));
 	}
 
-	@Test
-	public void testReductionSingleChar() {
+	@ParameterizedTest
+	@MethodSource("reducerImplStream")
+	void testReductionSingleChar(AlchemicalReductionable reducer) {
 		assertEquals("A", reducer.reduce("A"));
 	}
 
-	@Test
-	public void testReductiontTwoCharsReduction() {
+	@ParameterizedTest
+	@MethodSource("reducerImplStream")
+	void testReductiontTwoCharsReduction(AlchemicalReductionable reducer) {
 		assertEquals("", reducer.reduce("Aa"));
 	}
 
-	@Test
-	public void testReductiontTwoChars() {
+	@ParameterizedTest
+	@MethodSource("reducerImplStream")
+	void testReductiontTwoChars(AlchemicalReductionable reducer) {
 		assertEquals("AB", reducer.reduce("AB"));
 	}
 }
