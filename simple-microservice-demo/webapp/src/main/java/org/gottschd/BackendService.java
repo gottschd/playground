@@ -1,6 +1,5 @@
 package org.gottschd;
 
-import java.net.MalformedURLException;
 import java.net.URL;
 
 import org.slf4j.Logger;
@@ -13,7 +12,7 @@ import org.springframework.web.client.RestTemplate;
 @Configuration
 public class BackendService {
 
-	Logger logger = LoggerFactory.getLogger(BackendService.class);
+	private static Logger logger = LoggerFactory.getLogger(BackendService.class);
 
 	@Value("${backend.url}")
 	private String svcUrl;
