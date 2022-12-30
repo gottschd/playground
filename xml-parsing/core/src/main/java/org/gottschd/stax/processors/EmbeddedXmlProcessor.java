@@ -1,110 +1,89 @@
 package org.gottschd.stax.processors;
 
+import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStreamWriter;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
 import javax.xml.stream.XMLStreamReader;
 
 import org.gottschd.stax.EventTypeProcessor;
-import org.gottschd.stax.StaxParser;
+import org.gottschd.stax.StaxParseContext;
+import org.gottschd.stax.StaxParserParsingException;
+import org.gottschd.stax.utils.CheckedConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Embedded xml must be processed in another thread
+ * (Embedded) xml that must be processed in another parser
  */
 public class EmbeddedXmlProcessor implements EventTypeProcessor {
 
-    private PipeToParser embeddedParser;
-    private final String tagNameContainingEmbeddedXml;
-    private final StaxParser parserDelegate;
+	private static Logger log = LoggerFactory
+			.getLogger(EmbeddedXmlProcessor.class);
 
-    public EmbeddedXmlProcessor(String localName, StaxParser parser) {
-        this.tagNameContainingEmbeddedXml = localName;
-        this.parserDelegate = parser;
-    }
+	private ThreadedPipe pipe;
 
-    /**
-     * 
-     * @param xmlr
-     * @throws Exception
-     */
-    @Override
-    public void processEvent(XMLStreamReader xmlr) throws Exception {
-        if (xmlr.isStartElement() && tagNameContainingEmbeddedXml.equals(xmlr.getLocalName())) {
-            embeddedParser = new PipeToParser(parserDelegate).start();
-            return;
-        }
+	private final StaxParserPath localTagPath;
 
-        if (xmlr.isEndElement() && tagNameContainingEmbeddedXml.equals(xmlr.getLocalName())) {
-            embeddedParser.stop();
-            embeddedParser = null;
-            return;
-        }
+	private CheckedConsumer<InputStream> onEmbeddedXmlFound;
 
-        if (xmlr.isCharacters() || xmlr.isWhiteSpace()) {
-            if (embeddedParser != null) {
-                embeddedParser.feed(xmlr.getTextCharacters(), xmlr.getTextStart(), xmlr.getTextLength());
-            }
-        }
-    }
+	public EmbeddedXmlProcessor(String localTagPath,
+			CheckedConsumer<InputStream> onEmbeddedXmlFound) {
+		this.localTagPath = StaxParserPath.fromString(localTagPath);
+		this.onEmbeddedXmlFound = onEmbeddedXmlFound;
+	}
 
-    /**
-     * 
-     */
-    private static class PipeToParser implements Callable<Void> {
-        private static final Logger logger = LoggerFactory.getLogger(PipeToParser.class);
+	protected ThreadedPipe createPipe(
+			CheckedConsumer<InputStream> onEmbeddedXmlFound)
+			throws IOException {
+		return new ThreadedPipe(this.onEmbeddedXmlFound);
+	}
 
-        private static final ExecutorService executor = Executors.newCachedThreadPool();
+	/**
+	 * @param xmlr
+	 * @param context
+	 * @throws Exception
+	 */
+	@Override
+	public void processEvent(XMLStreamReader xmlr, StaxParseContext context)
+			throws StaxParserParsingException {
+		if (xmlr.isStartElement() && context.isCurrentPath(localTagPath)) {
+			try {
+				pipe = createPipe(onEmbeddedXmlFound).start();
+			} catch (IOException ex) {
+				throw new StaxParserParsingException(ex.getMessage(), ex);
+			}
+			return;
+		}
 
-        private final PipedOutputStream pop;
-        private final PipedInputStream pip;
-        private final OutputStreamWriter dataStream;
+		if (xmlr.isEndElement() && context.isCurrentPath(localTagPath)) {
+			pipe.stop();
+			pipe = null;
+			return;
+		}
 
-        private Future<Void> parsingFuture;
+		if (xmlr.isCharacters() || xmlr.isWhiteSpace()) {
+			if (pipe != null) {
+				try {
+					pipe.feed(xmlr.getTextCharacters(), xmlr.getTextStart(),
+							xmlr.getTextLength());
+				} catch (IOException ex) {
+					log.warn(
+							"IO Exception during feed. Might be an issue within the task ... - {}",
+							ex.getMessage());
+					log.debug(
+							"IO Exception during feed. Might be an issue within the task ...",
+							ex);
+					// sth happened with the pipe, so maybe there is an
+					// exception in the
+					// future
+					try {
+						pipe.stop();
+					} finally {
+						pipe = null;
+					}
+				}
+			}
+		}
+	}
 
-        private final StaxParser embeddedXmlParser;
-
-        PipeToParser(StaxParser parser) throws Exception {
-            pop = new PipedOutputStream();
-            pip = new PipedInputStream(pop, 8 * 1024);
-            dataStream = new OutputStreamWriter(pop);
-            embeddedXmlParser = parser;
-        }
-
-        PipeToParser start() {
-            parsingFuture = executor.submit(this);
-            return this;
-        }
-
-        void stop() throws Exception {
-            dataStream.close();
-            parsingFuture.get();
-        }
-
-        void feed(char[] textCharacters, int textStart, int textLength) throws Exception {
-            dataStream.write(textCharacters, textStart, textLength);
-        }
-
-        @Override
-        public Void call() throws Exception {
-            try (InputStream in = pip) {
-                embeddedXmlParser.parse(in);
-            } catch (Throwable t) {
-                // due to the nature of the async parsing/feeding some errors
-                // occurs lazy during the parsing, thus log any error but throw the exception
-                // further up.
-                logger.error("Error during parsing in another thread for parser '" + embeddedXmlParser.getName() + "'.",
-                        t);
-                throw t;
-            }
-            return null;
-        }
-    }
 }

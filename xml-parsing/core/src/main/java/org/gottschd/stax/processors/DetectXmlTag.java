@@ -3,29 +3,34 @@ package org.gottschd.stax.processors;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 
 import org.gottschd.stax.EventTypeProcessor;
+import org.gottschd.stax.StaxParseContext;
+import org.gottschd.stax.StaxParserParsingException;
 
 public class DetectXmlTag implements EventTypeProcessor {
-    private final Consumer<Integer> onTagCallback;
 
-    private final String localName;
+	private final Consumer<Integer> onTagFound;
 
-    public DetectXmlTag(String localName, Consumer<Integer> onTagCallback) {
-        this.localName = Objects.requireNonNull(localName);
-        this.onTagCallback = Objects.requireNonNull(onTagCallback);
-    }
+	private final StaxParserPath localNamePath;
 
-    @Override
-    public void processEvent(XMLStreamReader xmlr) throws Exception {
-        if (xmlr.isStartElement() && localName.equals(xmlr.getLocalName())) {
-            onTagCallback.accept(Integer.valueOf(xmlr.getEventType()));
-        }
+	public DetectXmlTag(String localNamePath, Consumer<Integer> onTagFound) {
+		this.localNamePath = StaxParserPath.fromString(localNamePath);
+		this.onTagFound = Objects.requireNonNull(onTagFound);
+	}
 
-        if (xmlr.isEndElement() && localName.equals(xmlr.getLocalName())) {
-            onTagCallback.accept(Integer.valueOf(xmlr.getEventType()));
-        }
-    }
+	@Override
+	public void processEvent(XMLStreamReader xmlr, StaxParseContext context)
+			throws StaxParserParsingException, XMLStreamException {
+		if (xmlr.isStartElement() && context.isCurrentPath(localNamePath)) {
+			onTagFound.accept(xmlr.getEventType());
+		}
+
+		if (xmlr.isEndElement() && context.isCurrentPath(localNamePath)) {
+			onTagFound.accept(xmlr.getEventType());
+		}
+	}
 
 }

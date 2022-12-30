@@ -17,7 +17,8 @@
 
 	<modules>
 		<module>core</module>
-		<module>service</module>
+		<module>business-core</module>
+		<module>business-springboot</module>
 	</modules>
 
 	<build>
