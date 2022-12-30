@@ -2,243 +2,132 @@ package org.gottschd;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.io.IOException;
+import java.io.ByteArrayOutputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.core.io.ClassPathResource;
 
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 public class XmlParsingBusinessSpringControllerTest {
+    private static final String loremIpsumLine = """
+            Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod \
+            tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At \
+            vero eos et accusam et justo duo""";
 
     @LocalServerPort
     int port;
 
     @Test
-    void testStaxXmlParsingWithXmlB() throws Exception {
-        System.out.println("building big xml finished.");
+    void testSmallB() throws Exception {
+        byte[] containerBytes = createContainerDataBytes(512);
+
+        String xml = """
+                    <SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
+                    <SOAP-ENV:Header/>
+                    <SOAP-ENV:Body>
+                        <ns3:A xmlns:ns3="urn:myNamespace">
+                            <B>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot; standalone=&quot;yes&quot;?&gt;
+                &lt;Message xmlns=&quot;http://www.myOther.org&quot;&gt;
+                    &lt;MyHeader&gt;
+                        &lt;C&gt;test-mail@dummy.org&lt;/C&gt;
+                    &lt;/MyHeader&gt;
+                    &lt;MyContent&gt;
+                        &lt;D&gt;NachrichtBetreff&lt;/D&gt;
+                        &lt;E&gt;
+                            &lt;F&gt;9002&lt;/F&gt;
+                        &lt;/E&gt;
+                        &lt;Breakpoint&gt;
+                            &lt;Encoding&gt;
+                                &lt;F&gt;9004&lt;/F&gt;
+                                &lt;Type&gt;text/plain&lt;/Type&gt;
+                            &lt;/Encoding&gt;
+                            &lt;Text&gt;NachrichtText&lt;/Text&gt;
+                        &lt;/Breakpoint&gt;
+                        &lt;MyContainer&gt;
+                            &lt;Data&gt;%1$s&lt;/Data&gt;
+                            &lt;FileName&gt;myFileName&lt;/FileName&gt;
+                            &lt;FileType&gt;
+                                &lt;F&gt;95&lt;/F&gt;
+                                &lt;Type&gt;txt&lt;/Type&gt;
+                            &lt;/FileType&gt;
+                        &lt;/MyContainer&gt;
+                        &lt;MyContainer&gt;
+                            &lt;Data&gt;%1$s&lt;/Data&gt;
+                            &lt;FileName&gt;FileName2&lt;/FileName&gt;
+                            &lt;FileType&gt;
+                                &lt;F&gt;95&lt;/F&gt;
+                                &lt;Type&gt;txt&lt;/Type&gt;
+                            &lt;/FileType&gt;
+                        &lt;/MyContainer&gt;
+                    &lt;/MyContent&gt;
+                &lt;/Message&gt;</B>
+                        </ns3:A>
+                    </SOAP-ENV:Body>
+                </SOAP-ENV:Envelope>
+                """
+                .formatted(Base64.getEncoder().encodeToString(containerBytes));
 
         System.out.println("building request...");
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(new URI("http://localhost:" + port + "/stax"))
                 .headers("Content-Type", "application/xml")
-                .POST(HttpRequest.BodyPublishers.ofInputStream(() -> {
-                    try {
-                        return new ClassPathResource("/req_xml_B.xml").getInputStream();
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                })).build();
-        System.out.println("building request finished.");
+                .POST(HttpRequest.BodyPublishers.ofString(xml)).build();
 
         // send streamed request
         System.out.println("performing request...");
         HttpResponse<String> response = HttpClient.newHttpClient().send(request,
                 HttpResponse.BodyHandlers.ofString());
-        System.out.println("performing request done.");
+        System.out.println("performing request done. response: " + response.body());
 
         assertEquals(200, response.statusCode());
     }
 
-    // @Test
-    // // @Disabled
-    // void testStaxXmlParsingWithXmlB_tooBig() throws Exception {
-    // System.out.println("building big xml finished.");
+    /**
+     * Leaks the internal buf instead of making a distinct copy.
+     */
+    private static class LeakingByteArrayOutputStream extends ByteArrayOutputStream {
 
-    // System.out.println("building request...");
-    // HttpRequest request = HttpRequest.newBuilder()
-    // .uri(new URI("http://localhost:" + port + "/stax"))
-    // .headers("Content-Type", "application/xml")
-    // .POST(HttpRequest.BodyPublishers.ofInputStream(() -> {
-    // try {
-    // return new ClassPathResource("/req_xml_B_tooBig.xml").getInputStream();
-    // } catch (IOException e) {
-    // throw new RuntimeException(e);
-    // }
-    // })).build();
-    // System.out.println("building request finished.");
+        LeakingByteArrayOutputStream(int bytesPerContainer) {
+            super(bytesPerContainer);
+        }
 
-    // // send streamed request
-    // System.out.println("performing request...");
-    // HttpResponse<String> response = HttpClient.newHttpClient().send(request,
-    // HttpResponse.BodyHandlers.ofString());
-    // System.out.println("performing request done.");
+        byte[] getByteArray() {
+            if (count != buf.length) {
+                throw new IllegalStateException("that should not happen");
+            }
+            return buf;
+        }
+    }
 
-    // assertEquals(500, response.statusCode());
-    // }
+    private static byte[] createContainerDataBytes(int bytesPerContainer) throws Exception {
+        // make a template
+        ByteArrayOutputStream dataTemplate = new ByteArrayOutputStream();
+        dataTemplate.write(loremIpsumLine.getBytes(StandardCharsets.UTF_8));
+        dataTemplate.write(System.lineSeparator().getBytes(StandardCharsets.UTF_8));
+        dataTemplate.flush();
+        byte[] line = dataTemplate.toByteArray();
 
-    // // @Disabled
-    // @Test
-    // void testStaxXmlParsingWithXmlA() throws Exception {
-    // // xml file with 20 * 50 MB data = 1GB data (approximated)
-    // System.out.println("building big xml...");
-    // Path xmlFile = createBigXmlFile(20, 50 * 1000 * 1000);
-    // System.out.println("building big xml finished.");
+        // create the resulting bytes size
+        int lineIterations = bytesPerContainer / line.length;
+        LeakingByteArrayOutputStream result = new LeakingByteArrayOutputStream(bytesPerContainer);
+        // write line to nearby possible size
+        while (lineIterations-- > 0) {
+            result.write(line);
+        }
+        // write rest
+        int lineRest = bytesPerContainer % line.length;
+        result.write(line, 0, lineRest);
+        result.flush();
 
-    // System.out.println("building request...");
-    // HttpRequest request = HttpRequest.newBuilder()
-    // .uri(new URI("http://localhost:" + port + "/stax"))
-    // .headers("Content-Type", "application/xml")
-    // .POST(HttpRequest.BodyPublishers.ofInputStream(() -> {
-    // try {
-    // return Files.newInputStream(xmlFile);
-    // } catch (IOException e) {
-    // throw new RuntimeException(e);
-    // }
-    // })).build();
-    // System.out.println("building request finished.");
+        return result.getByteArray();
+    }
 
-    // // send streamed request
-    // System.out.println("performing request...");
-    // HttpResponse<String> response = HttpClient.newHttpClient().send(request,
-    // HttpResponse.BodyHandlers.ofString());
-    // System.out.println("performing request done.");
-
-    // // test
-    // try (InputStream expected = new ClassPathResource("/remaining_expected.xml")
-    // .getInputStream()) {
-    // assertThat(new
-    // WhitespaceStrippedSource(Input.fromString(response.body()).build()),
-    // isSimilarTo(new
-    // WhitespaceStrippedSource(Input.fromStream(expected).build())));
-    // }
-
-    // Files.delete(xmlFile);
-    // }
-
-    // // @Disabled
-    // @Test
-    // void testStaxXmlParsingConcurrentWithXmlA() throws Exception {
-    // // xml file with 20 * 50 MB data = 1GB data (approximated)
-    // System.out.println("building big xml...");
-    // final Path xmlFile = createBigXmlFile(20, 50 * 1000 * 1000);
-    // System.out.println("building big xml finished.");
-
-    // int concurrentRequests = 3;
-
-    // System.out.println("building request...");
-    // List<HttpRequest> requests = new ArrayList<>();
-    // for (int i = 0; i < concurrentRequests; i++) {
-    // requests.add(HttpRequest.newBuilder().uri(new URI("http://localhost:" + port
-    // + "/stax"))
-    // .headers("Content-Type", "application/xml")
-    // .POST(HttpRequest.BodyPublishers.ofInputStream(() -> {
-    // try {
-    // return Files.newInputStream(xmlFile);
-    // } catch (IOException e) {
-    // throw new RuntimeException(e);
-    // }
-    // })).build());
-    // }
-
-    // System.out.println("building request finished.");
-
-    // // send streamed request
-    // HttpClient client = HttpClient.newHttpClient();
-    // List<CompletableFuture<HttpResponse<String>>> futures = requests.stream()
-    // .map(request -> client.sendAsync(request,
-    // HttpResponse.BodyHandlers.ofString()))
-    // .collect(Collectors.toList());
-
-    // // wait and assert each
-    // for (CompletableFuture<HttpResponse<String>> f : futures) {
-    // try (InputStream expected = new ClassPathResource("/remaining_expected.xml")
-    // .getInputStream()) {
-    // assertThat(new
-    // WhitespaceStrippedSource(Input.fromString(f.get().body()).build()),
-    // isSimilarTo(
-    // new WhitespaceStrippedSource(Input.fromStream(expected).build())));
-    // }
-    // }
-
-    // System.out.println("testXmlParsingConcurrent... finished");
-    // Files.delete(xmlFile);
-    // }
-
-    // /**
-    // *
-    // */
-    // private static byte[] getDataLine() throws Exception {
-    // try (ByteArrayOutputStream line = new ByteArrayOutputStream()) {
-    // line.write(loremIpsumLine.getBytes(StandardCharsets.UTF_8));
-    // line.write(System.lineSeparator().getBytes(StandardCharsets.UTF_8));
-    // line.flush();
-    // return line.toByteArray();
-    // }
-    // }
-
-    // /**
-    // *
-    // */
-    // public static Path createBigXmlFile(int containerCount, int
-    // bytesPerContainer)
-    // throws Exception {
-    // Path xmlFile = Files.createTempFile("big_xml", ".tmp");
-
-    // // copy first part
-    // try (InputStream top = new
-    // ClassPathResource("/req_cdata_embedded_template_top.xml")
-    // .getInputStream()) {
-    // appendInputStreamToFile(top, xmlFile);
-    // }
-
-    // // write the data container up to containerCount (20 maybe) times
-    // byte[] dataLine = getDataLine();
-    // for (int i = 0; i < containerCount; i++) {
-    // try (BufferedWriter writer = Files.newBufferedWriter(xmlFile,
-    // StandardOpenOption.APPEND)) {
-    // writer.write("<MyContainer>");
-    // writer.write(System.lineSeparator());
-    // writer.write("<Data>");
-    // }
-
-    // try (OutputStream out = Base64.getEncoder().wrap(new BufferedOutputStream(
-    // Files.newOutputStream(xmlFile, StandardOpenOption.APPEND)))) {
-    // int lineIterations = bytesPerContainer / dataLine.length;
-    // // write line to nearby possible size
-    // while (lineIterations-- > 0) {
-    // out.write(dataLine);
-    // }
-
-    // // write rest
-    // int lineRest = bytesPerContainer % dataLine.length;
-    // out.write(dataLine, 0, lineRest);
-    // }
-
-    // try (BufferedWriter writer = Files.newBufferedWriter(xmlFile,
-    // StandardOpenOption.APPEND)) {
-    // writer.write(System.lineSeparator());
-    // writer.write("</Data>");
-    // writer.write(System.lineSeparator());
-    // writer.write("<FileType><F>95</F><Type>txt</Type></FileType>");
-    // writer.write(System.lineSeparator());
-    // writer.write("</MyContainer>");
-    // writer.write(System.lineSeparator());
-    // }
-    // }
-
-    // // copy last part
-    // try (InputStream bottom = new
-    // ClassPathResource("/req_cdata_embedded_template_bottom.xml")
-    // .getInputStream()) {
-    // appendInputStreamToFile(bottom, xmlFile);
-    // }
-
-    // return xmlFile;
-    // }
-
-    // private static void appendInputStreamToFile(InputStream inputStream, Path
-    // file)
-    // throws IOException {
-    // try (OutputStream outputStream = new BufferedOutputStream(
-    // Files.newOutputStream(file, StandardOpenOption.APPEND))) {
-    // inputStream.transferTo(outputStream);
-    // }
-    // }
 }
