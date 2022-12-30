@@ -81,8 +81,8 @@ public class XmlParsingController {
         logger.info("character count root for <myHoniggut>: {}",
                 characterCountProcessor.getCountedCharaters());
 
-        logger.info("finished stax parsing controller, time: {}",
-                TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - now));
+        logger.info("finished stax parsing controller, time (ms): {}",
+                TimeUnit.MILLISECONDS.toMillis(System.currentTimeMillis() - now));
 
         return result;
     }

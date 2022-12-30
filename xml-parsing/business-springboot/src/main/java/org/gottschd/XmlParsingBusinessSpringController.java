@@ -28,7 +28,7 @@ public class XmlParsingBusinessSpringController {
         logger.info("Start parsing with spring boot ...");
         long now = System.currentTimeMillis();
         Result result = XmlParsingController.uploadSoap(request.getInputStream());
-        logger.info("Parsing took %s ms ...", System.currentTimeMillis() - now);
+        logger.info("Parsing took {} ms ...", System.currentTimeMillis() - now);
 
         if (result.getErrorMessage() != null) {
             return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON)
