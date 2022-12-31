@@ -23,7 +23,7 @@ public class XmlParsingBusinessSpringController {
     @Autowired
     private ObjectMapper mapper;
 
-    @PostMapping(value = "/stax", consumes = "application/xml", produces = "application/json")
+    @PostMapping(value = "/stax", consumes = MediaType.TEXT_XML_VALUE, produces = "application/json")
     public ResponseEntity<String> uploadStax(HttpServletRequest request) throws Exception {
         logger.info("Start parsing with spring boot ...");
         long now = System.currentTimeMillis();
@@ -36,24 +36,28 @@ public class XmlParsingBusinessSpringController {
         }
 
         if (result.isHoniggutXml()) {
-            return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(mapper
-                    .writeValueAsString(new HoniggutResponse(result.getExtractedDataSizes())));
+            return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON)
+                    .body(mapper.writeValueAsString(HoniggutResponse.ofResult(result)));
         }
 
         if (result.isBXml()) {
             return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON)
-                    .body(mapper.writeValueAsString(new BResponse(result.getExtractedDataSizes())));
+                    .body(mapper.writeValueAsString(BResponse.ofResult(result)));
         }
 
         throw new IllegalStateException("Unknown state");
     }
 
     public record HoniggutResponse(List<Integer> extractedDataSizes) {
-
+        static HoniggutResponse ofResult(Result result) {
+            return new HoniggutResponse(result.getExtractedDataSizes());
+        }
     }
 
     public record BResponse(List<Integer> extractedDataSizes) {
-
+        static BResponse ofResult(Result result) {
+            return new BResponse(result.getExtractedDataSizes());
+        }
     }
 
     public record ErrorResponse(String errorMessage) {

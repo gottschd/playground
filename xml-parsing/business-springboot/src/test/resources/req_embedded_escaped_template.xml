@@ -1,0 +1,27 @@
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
+    <SOAP-ENV:Header/>
+    <SOAP-ENV:Body>
+        <ns3:A xmlns:ns3="urn:myNamespace">
+            <B>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot; standalone=&quot;yes&quot;?&gt;
+&lt;Message xmlns=&quot;http://www.myOther.org&quot;&gt;
+    &lt;MyHeader&gt;
+        &lt;C&gt;test-mail@dummy.org&lt;/C&gt;
+    &lt;/MyHeader&gt;
+    &lt;MyContent&gt;
+        &lt;D&gt;NachrichtBetreff&lt;/D&gt;
+        &lt;E&gt;
+            &lt;F&gt;9002&lt;/F&gt;
+        &lt;/E&gt;
+        &lt;Breakpoint&gt;
+            &lt;Encoding&gt;
+                &lt;F&gt;9004&lt;/F&gt;
+                &lt;Type&gt;text/plain&lt;/Type&gt;
+            &lt;/Encoding&gt;
+            &lt;Text&gt;NachrichtText&lt;/Text&gt;
+        &lt;/Breakpoint&gt;
+%s
+    &lt;/MyContent&gt;
+&lt;/Message&gt;</B>
+        </ns3:A>
+    </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>
