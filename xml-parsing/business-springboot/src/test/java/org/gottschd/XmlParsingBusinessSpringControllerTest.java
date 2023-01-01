@@ -44,7 +44,6 @@ public class XmlParsingBusinessSpringControllerTest {
         System.out.println(response.body());
         Files.delete(createBigXmlFile);
         assertEquals(HttpStatus.OK.value(), response.statusCode());
-
     }
 
     /**
@@ -89,6 +88,8 @@ public class XmlParsingBusinessSpringControllerTest {
 
     private static Path createBigXmlFile(int containerCount, int bytesPerContainer)
             throws Exception {
+        System.out.println("creating big file...");
+        long now = System.currentTimeMillis();
 
         String outerTemplate = Files
                 .readString(Paths.get(XmlParsingBusinessSpringControllerTest.class
@@ -137,7 +138,8 @@ public class XmlParsingBusinessSpringControllerTest {
 
         Files.delete(templateFile);
 
-        System.out.println("created big file: " + bigFile.toString());
+        System.out.println("created big file in " + (System.currentTimeMillis() - now) + " ms: "
+                + bigFile.toString());
         return bigFile;
     }
 
