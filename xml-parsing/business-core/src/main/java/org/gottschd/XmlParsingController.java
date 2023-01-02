@@ -115,6 +115,10 @@ public class XmlParsingController {
         final List<Integer> byteSizesResults = new ArrayList<Integer>();
         embeddedStaxParser.addProcessor(
                 new Base64ExtractProcessor("Message/MyContent/MyContainer/Data", bytes -> {
+                    if (bytes.length == 0) {
+                        throw new StaxParserParsingException(
+                                "Zero length byte array not allowed in business.");
+                    }
                     byteSizesResults.add(bytes.length);
                 }));
 

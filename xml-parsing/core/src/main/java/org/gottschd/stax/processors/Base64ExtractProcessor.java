@@ -4,7 +4,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.util.Objects;
-import java.util.function.Consumer;
 
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
@@ -13,16 +12,18 @@ import org.apache.commons.codec.binary.Base64OutputStream;
 import org.gottschd.stax.EventTypeProcessor;
 import org.gottschd.stax.StaxParseContext;
 import org.gottschd.stax.StaxParserParsingException;
+import org.gottschd.stax.utils.CheckedConsumer;
 
 public class Base64ExtractProcessor implements EventTypeProcessor {
 
 	private Base64Extractor currentBase64Extractor;
 
-	private final Consumer<byte[]> onExtractFinishedCallback;
+	private final CheckedConsumer<byte[]> onExtractFinishedCallback;
 
 	private final StaxParserPath localTagPath;
 
-	public Base64ExtractProcessor(String localTagPath, Consumer<byte[]> onExtractFinishedCallback) {
+	public Base64ExtractProcessor(String localTagPath,
+			CheckedConsumer<byte[]> onExtractFinishedCallback) {
 		this.localTagPath = StaxParserPath.fromString(localTagPath);
 		this.onExtractFinishedCallback = Objects.requireNonNull(onExtractFinishedCallback);
 	}
@@ -38,7 +39,7 @@ public class Base64ExtractProcessor implements EventTypeProcessor {
 
 		if (xmlr.isEndElement() && context.isCurrentPath(localTagPath)) {
 			try {
-				onExtractFinishedCallback.accept(currentBase64Extractor.getBytes());
+				onExtractFinishedCallback.apply(currentBase64Extractor.getBytes());
 			} catch (IOException e) {
 				throw new StaxParserParsingException(e.getMessage(), e);
 			}
