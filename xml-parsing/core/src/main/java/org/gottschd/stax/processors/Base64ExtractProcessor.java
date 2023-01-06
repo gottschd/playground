@@ -39,11 +39,12 @@ public class Base64ExtractProcessor implements EventTypeProcessor {
 
 		if (xmlr.isEndElement() && context.isCurrentPath(localTagPath)) {
 			try {
-				onExtractFinishedCallback.apply(currentBase64Extractor.getBytes());
+				onExtractFinishedCallback.apply(currentBase64Extractor.getBytesAndClose());
 			} catch (IOException e) {
 				throw new StaxParserParsingException(e.getMessage(), e);
+			} finally {
+				currentBase64Extractor = null;
 			}
-			currentBase64Extractor = null;
 			return;
 		}
 
@@ -66,12 +67,11 @@ public class Base64ExtractProcessor implements EventTypeProcessor {
 		private final OutputStreamWriter sink;
 
 		private Base64Extractor() {
-
 			result = new ByteArrayOutputStream();
 			sink = new OutputStreamWriter(new Base64OutputStream(result, false));
 		}
 
-		byte[] getBytes() throws IOException {
+		byte[] getBytesAndClose() throws IOException {
 			sink.close();
 			return result.toByteArray();
 		}

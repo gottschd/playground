@@ -2,7 +2,7 @@ package org.gottschd;
 
 import java.util.List;
 
-import org.gottschd.XmlParsingController.Result;
+import org.gottschd.XmlParsingBusinessLogic.Result;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +18,7 @@ import jakarta.servlet.http.HttpServletRequest;
 @RestController
 public class XmlParsingBusinessSpringController {
 
-    private static final Logger logger = LoggerFactory.getLogger(XmlParsingController.class);
+    private static final Logger logger = LoggerFactory.getLogger(XmlParsingBusinessLogic.class);
 
     @Autowired
     private ObjectMapper mapper;
@@ -27,7 +27,7 @@ public class XmlParsingBusinessSpringController {
     public ResponseEntity<String> uploadStax(HttpServletRequest request) throws Exception {
         logger.info("Start parsing with spring boot ...");
         long now = System.currentTimeMillis();
-        Result result = XmlParsingController.uploadSoap(request.getInputStream());
+        Result result = XmlParsingBusinessLogic.uploadSoap(request.getInputStream());
         logger.info("Parsing took {} ms ...", System.currentTimeMillis() - now);
 
         if (result.getErrorMessage() != null) {

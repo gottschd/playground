@@ -10,6 +10,10 @@
 		<version>0.0.1-SNAPSHOT</version>
 	</parent>
 
+	<properties>
+		<maven.build.timestamp.format>yyyy-MM-dd-HHmmss</maven.build.timestamp.format>
+	</properties>
+
 	<groupId>org.gottschd</groupId>
 	<artifactId>xml-parsing-business-core</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
@@ -69,7 +73,8 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
 				<configuration>
-					<argLine>-Dfile.encoding=UTF-8</argLine>
+					<argLine>-Xmx256m -Dfile.encoding=UTF-8 -XX:+HeapDumpOnOutOfMemoryError -Xlog:gc=debug:file=target/gc-${maven.build.timestamp}.log -XX:StartFlightRecording=disk=true,dumponexit=true,filename=target/recording-${maven.build.timestamp}.jfr,settings=profile,path-to-gc-roots=true
+					</argLine>
 				</configuration>
 			</plugin>
 		</plugins>

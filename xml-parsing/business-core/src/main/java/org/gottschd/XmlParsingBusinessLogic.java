@@ -14,8 +14,8 @@ import org.gottschd.stax.processors.EmbeddedXmlProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class XmlParsingController {
-    private static final Logger logger = LoggerFactory.getLogger(XmlParsingController.class);
+public class XmlParsingBusinessLogic {
+    private static final Logger logger = LoggerFactory.getLogger(XmlParsingBusinessLogic.class);
 
     /**
      * Here we expect two predefined but different XMLs.
