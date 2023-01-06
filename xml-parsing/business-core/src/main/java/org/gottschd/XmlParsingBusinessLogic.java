@@ -34,7 +34,7 @@ public class XmlParsingBusinessLogic {
         // add primitive checker for correct payload
         soapParser.addProcessor(
                 new AllowedPathsProcessor("Envelope/Header", "Envelope/Body/BMessage/myHoniggut", // <-
-                                                                                                  // the
+                                                                                                  // a
                                                                                                   // base64
                                                                                                   // encoded
                                                                                                   // embedded
