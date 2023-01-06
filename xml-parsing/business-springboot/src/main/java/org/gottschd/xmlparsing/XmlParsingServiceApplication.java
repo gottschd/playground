@@ -1,4 +1,4 @@
-package org.gottschd;
+package org.gottschd.xmlparsing;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

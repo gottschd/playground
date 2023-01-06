@@ -1,4 +1,4 @@
-package org.gottschd;
+package org.gottschd.xmlparsing;
 
 import java.io.InputStream;
 import java.util.ArrayList;

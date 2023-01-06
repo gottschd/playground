@@ -1,4 +1,4 @@
-package org.gottschd;
+package org.gottschd.xmlparsing;
 
 import java.util.concurrent.atomic.LongAdder;
 

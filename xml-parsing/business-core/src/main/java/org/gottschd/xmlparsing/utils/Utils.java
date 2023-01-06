@@ -1,4 +1,4 @@
-package org.gottschd.utils;
+package org.gottschd.xmlparsing.utils;
 
 import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;

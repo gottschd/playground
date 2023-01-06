@@ -1,8 +1,8 @@
-package org.gottschd;
+package org.gottschd.xmlparsing;
 
 import java.util.List;
 
-import org.gottschd.XmlParsingBusinessLogic.Result;
+import org.gottschd.xmlparsing.XmlParsingBusinessLogic.Result;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

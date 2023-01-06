@@ -1,4 +1,4 @@
-package org.gottschd;
+package org.gottschd.xmlparsing;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -11,8 +11,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import org.gottschd.XmlParsingBusinessLogic.Result;
-import org.gottschd.utils.Utils;
+import org.gottschd.xmlparsing.XmlParsingBusinessLogic;
+import org.gottschd.xmlparsing.XmlParsingBusinessLogic.Result;
+import org.gottschd.xmlparsing.utils.Utils;
 import org.junit.jupiter.api.Test;
 
 public class XmlParsingBusinessLogicTest {
