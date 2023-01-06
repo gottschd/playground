@@ -4,26 +4,34 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.stream.Stream;
 
 import org.gottschd.utils.Utils;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class UtilsTest {
-    @Test
-    void test_Bxml_escaped_big() throws Exception {
-        Path createBigXmlFile = Utils.createEmbeddedEscapedXmlFile(20, 50 * 1024 * 1024);
+    @ParameterizedTest()
+    @MethodSource("provideParameters")
+    void test_create_Bxml_escaped_different_sizes(int containerCount, int bytesPerContainer)
+            throws Exception {
+        Path createBigXmlFile = Utils.createEmbeddedEscapedXmlFile(containerCount,
+                bytesPerContainer);
         long size = Files.size(createBigXmlFile);
-        assertTrue(size > 1024 * 1024 * 1024); // bigger than 1GB
+        assertTrue(size > containerCount * bytesPerContainer); // bigger than 1GB
+        Files.delete(createBigXmlFile);
     }
 
-    @Test
-    void test_Bxml_escaped_big_multiple_times() throws Exception {
-        int count = 5;
-        while (count-- > 0) {
-            Path createBigXmlFile = Utils.createEmbeddedEscapedXmlFile(20, 50 * 1024 * 1024);
-            long size = Files.size(createBigXmlFile);
-            assertTrue(size > 1024 * 1024 * 1024); // bigger than 1GB
-        }
+    static Stream<Arguments> provideParameters() {
+        // @formatter:off
+        return Stream.of(
+                Arguments.of(1, 1), 
+                Arguments.of(2, 512),
+                // expect no OOME when creating the following
+                Arguments.of(20, 50 * 1024 * 1014), 
+                Arguments.of(200, 50 * 1024 * 1014));
+        // @formatter:on
     }
-
 }

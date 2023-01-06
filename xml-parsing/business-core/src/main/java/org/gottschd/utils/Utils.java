@@ -77,7 +77,8 @@ public class Utils {
                 .getResourceAsStream("/req_embedded_escaped_template.xml")) {
             String outerTemplate = readStringFromInputStream(in);
 
-            templateFile = Files.createTempFile("template_xml_", ".tmp");
+            templateFile = Files.createTempFile(
+                    "template_xml_" + containerCount + "_" + bytesPerContainer + "_", ".tmp");
             Files.write(templateFile, outerTemplate.formatted(containers.toString())
                     .getBytes(StandardCharsets.UTF_8));
         } finally {
@@ -87,7 +88,8 @@ public class Utils {
         // replace the markers with the correct content size
         String newInhalt = DATALINE_WITH_MARKER_ESCAPED.replace(MARKER,
                 Base64.getEncoder().encodeToString(createContainerDataBytes(bytesPerContainer)));
-        Path bigFile = Files.createTempFile("big_xml_", ".tmp");
+        Path bigFile = Files.createTempFile(
+                "big_xml_" + containerCount + "_" + bytesPerContainer + "_", ".tmp");
         try (BufferedWriter fos = Files.newBufferedWriter(bigFile)) {
             Files.lines(templateFile, StandardCharsets.UTF_8).forEach(line -> {
                 // replace the marker with the generated attachment
