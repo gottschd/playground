@@ -23,10 +23,6 @@ import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 
-import org.gottschd.stax.EventTypeProcessor;
-import org.gottschd.stax.StaxParseContext;
-import org.gottschd.stax.StaxParser;
-import org.gottschd.stax.StaxParserParsingException;
 import org.gottschd.stax.processors.AllowedPathsProcessor;
 import org.gottschd.stax.processors.Base64ExtractProcessor;
 import org.gottschd.stax.processors.CopyProcessor;

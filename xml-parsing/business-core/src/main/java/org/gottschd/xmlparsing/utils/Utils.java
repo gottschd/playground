@@ -4,10 +4,12 @@ import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.Base64;
 import java.util.StringJoiner;
 
@@ -20,31 +22,38 @@ public class Utils {
 
     private static final char[] loremIpsumLineChars = loremIpsumLine.toCharArray();
 
-    private static final String MARKER = "XXXXXX";
+    private static final String MARKER = "XYXData_MarkerXYX";
 
-    private static final String DATALINE_WITH_MARKER_ESCAPED = "&lt;Data&gt;XXXXXX&lt;/Data&gt;";
+    private static final byte[] dataBytesTemplate;
+    static {
+        try {
+            ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+            while (outStream.size() < 1 * 1024 * 1024) {
+                outStream.write(loremIpsumLine.getBytes(StandardCharsets.UTF_8));
+                outStream.write(System.lineSeparator().getBytes(StandardCharsets.UTF_8));
+            }
+            outStream.flush();
+            dataBytesTemplate = outStream.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException("Could not create template data bytes", e);
+        }
+    }
 
-    private static byte[] createContainerDataBytes(int bytesPerContainer) throws IOException {
-        // make a template
-        ByteArrayOutputStream dataTemplate = new ByteArrayOutputStream();
-        dataTemplate.write(loremIpsumLine.getBytes(StandardCharsets.UTF_8));
-        dataTemplate.write(System.lineSeparator().getBytes(StandardCharsets.UTF_8));
-        dataTemplate.flush();
-        byte[] line = dataTemplate.toByteArray();
+    private static void insertContainerDataBytesAsBase64String(OutputStream target,
+            int bytesPerContainer) throws IOException {
 
-        // create the resulting bytes size
-        int lineIterations = bytesPerContainer / line.length;
-        ByteArrayOutputStream result = new ByteArrayOutputStream(bytesPerContainer);
+        OutputStream wrap = Base64.getEncoder().wrap(target);
+
         // write line to nearby possible size
+        int lineIterations = bytesPerContainer / dataBytesTemplate.length;
         while (lineIterations-- > 0) {
-            result.write(line);
+            wrap.write(dataBytesTemplate);
         }
         // write rest
-        int lineRest = bytesPerContainer % line.length;
-        result.write(line, 0, lineRest);
-        result.flush();
+        int lineRest = bytesPerContainer % dataBytesTemplate.length;
+        wrap.write(dataBytesTemplate, 0, lineRest);
 
-        return result.toByteArray();
+        wrap.close();
     }
 
     private static String readStringFromInputStream(InputStream src) throws IOException {
@@ -56,49 +65,36 @@ public class Utils {
         System.out.println("creating big file...");
         long now = System.currentTimeMillis();
 
-        String containerTemplate = """
-                &lt;MyContainer&gt;
-                    &lt;Data&gt;XXXXXX&lt;/Data&gt;
-                    &lt;FileName&gt;myFileName&lt;/FileName&gt;
-                    &lt;FileType&gt;
-                        &lt;F&gt;95&lt;/F&gt;
-                        &lt;Type&gt;txt&lt;/Type&gt;
-                    &lt;/FileType&gt;
-                &lt;/MyContainer&gt;
-                """;
-
-        StringJoiner containers = new StringJoiner(System.lineSeparator());
-        for (int i = 0; i < containerCount; i++) {
-            containers.add(containerTemplate);
-        }
-
-        final Path templateFile;
-        try (InputStream in = Utils.class
-                .getResourceAsStream("/req_embedded_escaped_template.xml")) {
-            String outerTemplate = readStringFromInputStream(in);
-
-            templateFile = Files.createTempFile(
-                    "template_xml_" + containerCount + "_" + bytesPerContainer + "_", ".tmp");
-            Files.write(templateFile, outerTemplate.formatted(containers.toString())
-                    .getBytes(StandardCharsets.UTF_8));
-        } finally {
-            containers = null;
-        }
+        final Path templateFile = createTemplateFileEscaped(MARKER, containerCount,
+                bytesPerContainer);
 
         // replace the markers with the correct content size
-        String newInhalt = DATALINE_WITH_MARKER_ESCAPED.replace(MARKER,
-                Base64.getEncoder().encodeToString(createContainerDataBytes(bytesPerContainer)));
         Path bigFile = Files.createTempFile(
                 "big_xml_" + containerCount + "_" + bytesPerContainer + "_", ".tmp");
-        try (BufferedWriter fos = Files.newBufferedWriter(bigFile)) {
+
+        try (BufferedWriter fos = Files.newBufferedWriter(bigFile, StandardOpenOption.APPEND)) {
             Files.lines(templateFile, StandardCharsets.UTF_8).forEach(line -> {
                 // replace the marker with the generated attachment
-                if (line.contains(DATALINE_WITH_MARKER_ESCAPED)) {
-                    line = line.replace(DATALINE_WITH_MARKER_ESCAPED, newInhalt);
-                }
                 try {
-                    // copy the line to the output
-                    fos.write(line);
+                    if (line.contains(MARKER)) {
+                        String[] lineParts = line.split(MARKER);
+                        fos.write(lineParts[0]);
+                        fos.flush(); // flush anything so far
+
+                        // long now2 = System.currentTimeMillis();
+                        insertContainerDataBytesAsBase64String(
+                                Files.newOutputStream(bigFile, StandardOpenOption.APPEND),
+                                bytesPerContainer);
+
+                        // System.out.println(
+                        // "time per container: " + (System.currentTimeMillis() - now2));
+                        fos.write(lineParts[1]);
+                    } else {
+                        // copy the line as is to the output
+                        fos.write(line);
+                    }
+
+                    // terminate the line
                     fos.write(System.lineSeparator());
                 } catch (IOException e) {
                     throw new RuntimeException(e);
@@ -112,6 +108,39 @@ public class Utils {
         System.out.println("created big file in " + (System.currentTimeMillis() - now) + " ms: "
                 + bigFile.toString());
         return bigFile;
+    }
+
+    private static Path createTemplateFileEscaped(String dataMarker, int containerCount,
+            int bytesPerContainer) throws IOException {
+        // (TODO) There is potential for improvement in memory consumption when
+        // containerCount is high
+
+        String containerTemplate = """
+                &lt;MyContainer&gt;
+                    &lt;Data&gt;%s&lt;/Data&gt;
+                    &lt;FileName&gt;myFileName&lt;/FileName&gt;
+                    &lt;FileType&gt;
+                        &lt;F&gt;95&lt;/F&gt;
+                        &lt;Type&gt;txt&lt;/Type&gt;
+                    &lt;/FileType&gt;
+                &lt;/MyContainer&gt;
+                """.formatted(dataMarker);
+
+        StringJoiner containers = new StringJoiner(System.lineSeparator());
+        for (int i = 0; i < containerCount; i++) {
+            containers.add(containerTemplate);
+        }
+
+        final Path templateFile;
+        try (InputStream in = Utils.class
+                .getResourceAsStream("/req_embedded_escaped_template.xml")) {
+            String outerTemplate = readStringFromInputStream(in);
+
+            templateFile = Files.createTempFile(
+                    "template_xml_" + containerCount + "_" + bytesPerContainer + "_", ".tmp");
+            Files.writeString(templateFile, outerTemplate.formatted(containers.toString()));
+        }
+        return templateFile;
     }
 
     public static String createHoniggutBase64Xml(int characterCount) {

@@ -11,7 +11,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import org.gottschd.xmlparsing.XmlParsingBusinessLogic;
 import org.gottschd.xmlparsing.XmlParsingBusinessLogic.Result;
 import org.gottschd.xmlparsing.utils.Utils;
 import org.junit.jupiter.api.Test;
@@ -22,9 +21,6 @@ public class XmlParsingBusinessLogicTest {
     void testParsingB() throws Exception {
         Path xmlFile = Utils.createEmbeddedEscapedXmlFile(2, 512);
         try {
-
-            System.out.println(Files.readString(xmlFile));
-
             Result result = XmlParsingBusinessLogic.uploadSoap(Files.newInputStream(xmlFile));
 
             assertFalse(result.isHoniggutXml());
