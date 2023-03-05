@@ -32,16 +32,12 @@ public class XmlParsingBusinessLogic {
         StaxParser soapParser = new StaxParser("Soap");
 
         // add primitive checker for correct payload
+        //@formatter:off
         soapParser.addProcessor(
-                new AllowedPathsProcessor("Envelope/Header", "Envelope/Body/BMessage/myHoniggut", // <-
-                                                                                                  // a
-                                                                                                  // base64
-                                                                                                  // encoded
-                                                                                                  // embedded
-                                                                                                  // xml
+                new AllowedPathsProcessor("Envelope/Header", "Envelope/Body/BMessage/myHoniggut", // <- a base64 encoded embedded xml
                         "Envelope/Body/A/B") // <- the cdata/escaped embedded xml
         );
-
+        //@formatter:on
         // add processor for the embedded (cdata or escaped) xml
         soapParser.addProcessor(new EmbeddedXmlProcessor("Envelope/Body/A/B", inputStream -> {
             List<Integer> extractedDataSizes = streamBInternal(inputStream);
