@@ -14,6 +14,7 @@ import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
+import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.security.crypto.scrypt.SCryptPasswordEncoder;
 
 import com.lambdaworks.crypto.SCryptUtil;
@@ -33,22 +34,31 @@ public class BenchmarkPasswdHashing {
     @Param({ "$g12345sasewegk??sdg/e8" })
     public String plainPasswd;
 
-    SCryptPasswordEncoder staticEncoder;
+    private SCryptPasswordEncoder scryptEncoder;
+
+    private Argon2PasswordEncoder argon2Encoder;
 
     @Setup(Level.Trial)
     public void setupTrial() {
-        staticEncoder = new SCryptPasswordEncoder(CPU_COST, MEMORY_COST,
+        scryptEncoder = new SCryptPasswordEncoder(CPU_COST, MEMORY_COST,
                 PARALLIZATION,
                 32, 16);
+
+        argon2Encoder = Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
     }
 
     @Benchmark
-    public String encodeSpringCryptoSingletonCrypto() {
-        return staticEncoder.encode(plainPasswd);
+    public String encodeScryptSpring() {
+        return scryptEncoder.encode(plainPasswd);
     }
 
     @Benchmark
-    public String encodeLamdaworkds() {
+    public String encodeArgon2Spring() {
+        return argon2Encoder.encode(plainPasswd);
+    }
+
+    @Benchmark
+    public String encodeScryptLamdaworks() {
         return SCryptUtil.scrypt(plainPasswd, CPU_COST, MEMORY_COST, PARALLIZATION);
     }
 
