@@ -13,7 +13,7 @@ import org.openjdk.jmh.annotations.Warmup;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
 
-@Threads(20)
+@Threads(4)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @Warmup(iterations = 3, time = 4, timeUnit = TimeUnit.SECONDS)
 @Measurement(iterations = 3, time = 4, timeUnit = TimeUnit.SECONDS)
