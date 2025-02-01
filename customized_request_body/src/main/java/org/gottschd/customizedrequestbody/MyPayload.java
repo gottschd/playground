@@ -17,8 +17,4 @@ public class MyPayload {
 	@NotBlank
 	private String vorname;
 
-	private long age;
-
-	private LocalDate birthdate;
-
 }

@@ -14,7 +14,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class MyController {
 
 	@PostMapping("/test")
-	public ResponseEntity<Void> deleteByMessageId(@RequestBody @Valid MyPayload myPayload) {
+	public ResponseEntity<Void> test(@RequestBody @Valid MyPayload myPayload) {
+		log.info("Received payload: {}", myPayload);
+		return ResponseEntity.ok().build();
+	}
+
+	@PostMapping("/testCustomized")
+	public ResponseEntity<Void> testCustomized(@RequestBody @Valid MyPayload myPayload) {
 		log.info("Received payload: {}", myPayload);
 		return ResponseEntity.ok().build();
 	}

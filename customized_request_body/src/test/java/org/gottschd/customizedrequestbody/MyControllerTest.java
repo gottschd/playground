@@ -28,8 +28,6 @@ class MyControllerTest {
 	void testCustomizedPayloadTrimming() throws Exception {
 		MyPayload p = new MyPayload();
 		p.setVorname("     meinVorname     ");
-		p.setAge(11);
-		p.setBirthdate(LocalDate.of(1930, 6, 2));
 		mockMvc
 			.perform(post("/test").contentType(MediaType.APPLICATION_JSON_VALUE)
 				.content(objectMapper.writeValueAsBytes(p)))
