@@ -1,0 +1,22 @@
+package org.gottschd.customizedrequestbody;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+
+@Slf4j
+@RestController
+@RequiredArgsConstructor
+public class MyController {
+
+	@PostMapping("/test")
+	public ResponseEntity<Void> deleteByMessageId(@RequestBody @Valid MyPayload myPayload) {
+		log.info("Received payload: {}", myPayload);
+		return ResponseEntity.ok().build();
+	}
+
+}
