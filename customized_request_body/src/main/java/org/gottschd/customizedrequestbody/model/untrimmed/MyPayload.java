@@ -1,12 +1,10 @@
-package org.gottschd.customizedrequestbody;
+package org.gottschd.customizedrequestbody.model.untrimmed;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-
-import java.time.LocalDate;
 
 @Getter
 @Setter

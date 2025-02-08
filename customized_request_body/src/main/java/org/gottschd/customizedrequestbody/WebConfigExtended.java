@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.deser.std.StringDeserializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import lombok.extern.slf4j.Slf4j;
+import org.gottschd.customizedrequestbody.model.trimmed.MyTrimmedPayload;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
@@ -24,6 +25,8 @@ import java.util.function.Predicate;
 @Slf4j
 public class WebConfigExtended implements WebMvcConfigurer {
 
+	private static final String CLASSES_TO_BE_TRIMMED = MyTrimmedPayload.class.getPackageName();
+
 	@Override
 	public void extendMessageConverters(List<HttpMessageConverter<?>> converters) {
 		// wrap (all) MappingJackson2HttpMessageConverter with a converter
@@ -36,7 +39,7 @@ public class WebConfigExtended implements WebMvcConfigurer {
 		List<HttpMessageConverter<?>> adaptedConverters = new ArrayList<>();
 		for (HttpMessageConverter<?> converter : converters) {
 			if (converter instanceof MappingJackson2HttpMessageConverter c) {
-				adaptedConverters.add(new NonGottschdClassesJackson2HttpMessageConverter(c));
+				adaptedConverters.add(new DoNotTrimClassesJackson2HttpMessageConverter(c));
 			}
 			else {
 				adaptedConverters.add(converter);
@@ -45,9 +48,8 @@ public class WebConfigExtended implements WebMvcConfigurer {
 
 		// now clear and add all in the expected order but wrapped
 		converters.clear();
-		converters.addAll(adaptedConverters);
 
-		// now add gottschd mapper
+		// now add gottschd mapper first, because it is the most specific
 		MappingJackson2HttpMessageConverter gottschdConverter = new MappingJackson2HttpMessageConverter();
 
 		SimpleModule sm = new SimpleModule();
@@ -61,25 +63,25 @@ public class WebConfigExtended implements WebMvcConfigurer {
 		});
 
 		gottschdConverter.getObjectMapper().registerModule(sm);
-		converters.add(new GottscDOnlyClassesJackson2HttpMessageConverter(gottschdConverter));
+		converters.add(new DoTrimClassesJackson2HttpMessageConverter(gottschdConverter));
+
+		// and later all pre-existing classes
+		converters.addAll(adaptedConverters);
 	}
 
-	private static class GottscDOnlyClassesJackson2HttpMessageConverter
-			extends ClassFilteredJackson2HttpMessageConverter {
+	private static class DoTrimClassesJackson2HttpMessageConverter extends ClassFilteredJackson2HttpMessageConverter {
 
-		GottscDOnlyClassesJackson2HttpMessageConverter(MappingJackson2HttpMessageConverter original) {
-			super(original, readClazz -> readClazz.getName().startsWith("org.gottschd"),
-					writeClazz -> writeClazz.getName().startsWith("org.gottschd"));
+		DoTrimClassesJackson2HttpMessageConverter(MappingJackson2HttpMessageConverter original) {
+			super(original, readType -> readType.getTypeName().startsWith(CLASSES_TO_BE_TRIMMED), "DoTrim");
 		}
 
 	}
 
-	private static class NonGottschdClassesJackson2HttpMessageConverter
+	private static class DoNotTrimClassesJackson2HttpMessageConverter
 			extends ClassFilteredJackson2HttpMessageConverter {
 
-		NonGottschdClassesJackson2HttpMessageConverter(MappingJackson2HttpMessageConverter original) {
-			super(original, readClazz -> !readClazz.getName().startsWith("org.gottschd"),
-					writeClazz -> !writeClazz.getName().startsWith("org.gottschd"));
+		DoNotTrimClassesJackson2HttpMessageConverter(MappingJackson2HttpMessageConverter original) {
+			super(original, readType -> !readType.getTypeName().startsWith(CLASSES_TO_BE_TRIMMED), "DoNotTrim");
 		}
 
 	}
@@ -87,27 +89,25 @@ public class WebConfigExtended implements WebMvcConfigurer {
 	@Slf4j
 	private static class ClassFilteredJackson2HttpMessageConverter extends MappingJackson2HttpMessageConverter {
 
-		private final Predicate<Class<?>> canReadPredicate;
+		private final Predicate<Type> allowedToReadPredicate;
 
-		private final Predicate<Class<?>> canWritePredicate;
+		private final String debugInfo;
 
 		ClassFilteredJackson2HttpMessageConverter(MappingJackson2HttpMessageConverter original,
-				Predicate<Class<?>> canReadClazzPredicate, Predicate<Class<?>> canWriteClazzPredicate) {
+				Predicate<Type> canReadClazzPredicate, String debugInfo) {
 			super(original.getObjectMapper());
-			this.canReadPredicate = canReadClazzPredicate;
-			this.canWritePredicate = canWriteClazzPredicate;
+			this.allowedToReadPredicate = canReadClazzPredicate;
+			this.debugInfo = debugInfo;
 		}
 
 		@Override
 		public boolean canRead(Type type, Class<?> contextClass, MediaType mediaType) {
-			log.trace("canRead type: {}, contextClass: {}, mediaType: {}", type, contextClass, mediaType);
-			return canReadPredicate.test(contextClass) && super.canRead(type, contextClass, mediaType);
-		}
-
-		@Override
-		public boolean canWrite(Class<?> clazz, MediaType mediaType) {
-			log.trace("canWrite clazz: {}, mediaType: {}", clazz, mediaType);
-			return canWritePredicate.test(clazz) && super.canWrite(clazz, mediaType);
+			log.info("canRead (debugInfo: {}) - type: {}, contextClass: {}, mediaType: {}", debugInfo, type,
+					contextClass, mediaType);
+			boolean allowedToRead = allowedToReadPredicate.test(type);
+			log.info("    allowedToRead: {}, super.canRead: {}", allowedToRead,
+					super.canRead(type, contextClass, mediaType));
+			return allowedToRead && super.canRead(type, contextClass, mediaType);
 		}
 
 	}
