@@ -1,8 +1,8 @@
 package org.gottschd.customizedrequestbody;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.gottschd.customizedrequestbody.model.trimmed.MyTrimmedPayload;
-import org.gottschd.customizedrequestbody.model.untrimmed.MyPayload;
+import org.gottschd.customizedrequestbody.model.plain.MyPlainPayload;
+import org.gottschd.customizedrequestbody.model.trimmedbyclass.MyTrimmedByClassPayload;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -11,13 +11,10 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 
 import java.util.stream.Stream;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -33,9 +30,15 @@ class MyControllerTest {
 
 	public static Stream<Arguments> provideTestData() {
 		//@formatter:on
-		return Stream.of(Arguments.of("/untrimmed", "  keinVorname  ", "  keinVorname  "),
-				Arguments.of("/untrimmed", "vorname", "vorname"),
-				Arguments.of("/trimmedByClass", "  vorname  ", "vorname")
+		return Stream.of(
+				Arguments.of("/untrimmed", MyPlainPayload.builder().vorname("  Oskar  ").build(), MyPlainPayload.class, "  Oskar  "),
+				Arguments.of("/untrimmed", MyPlainPayload.builder().vorname("").build(), MyPlainPayload.class, "must not be blank"), // test validation
+
+				Arguments.of("/trimmedByClass", MyTrimmedByClassPayload.builder().vorname("  Franz  ").build(), MyTrimmedByClassPayload.class, "Franz"),
+				Arguments.of("/trimmedByClass", MyTrimmedByClassPayload.builder().vorname("").build(), MyTrimmedByClassPayload.class, "must not be blank"), // test validation
+
+				Arguments.of("/trimmedByCustomAnnotation", MyPlainPayload.builder().vorname("  Ben  ").build(), MyPlainPayload.class,  "Ben"),
+				Arguments.of("/trimmedByCustomAnnotation", MyPlainPayload.builder().vorname("").build(), MyPlainPayload.class, "must not be blank") // test validation
 
 		);
 		//@formatter:on
@@ -43,22 +46,9 @@ class MyControllerTest {
 
 	@ParameterizedTest
 	@MethodSource("provideTestData")
-	void testCustomizedPayloadTrimming(String url, String givenVorname, String expectedVorname) throws Exception {
+	void testCustomizedPayloadTrimming(String url, Object payload, Class<?> payloadClass, String expectedVorname) throws Exception {
 
-		final byte[] content;
-		if (url.equals("/untrimmed")) {
-			MyPayload p = new MyPayload();
-			p.setVorname(givenVorname);
-			content = objectMapper.writeValueAsBytes(p);
-		}
-		else if (url.equals("/trimmedByClass")) {
-			MyTrimmedPayload p = new MyTrimmedPayload();
-			p.setVorname(givenVorname);
-			content = objectMapper.writeValueAsBytes(p);
-		}
-		else {
-			throw new UnsupportedOperationException("unknown url");
-		}
+		final byte[] content = objectMapper.writerFor(payloadClass).writeValueAsBytes(payload);
 
 		mockMvc.perform(post(url).contentType(MediaType.APPLICATION_JSON_VALUE).content(content))
 			.andExpect(status().isOk())
