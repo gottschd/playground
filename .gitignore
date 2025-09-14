@@ -9,3 +9,5 @@ bin
 .settings
 .vscode
 target
+.idea
+
