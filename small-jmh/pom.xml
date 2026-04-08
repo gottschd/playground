@@ -12,6 +12,9 @@
     <packaging>jar</packaging>
 
     <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
         <maven-toolchains-plugin.version>3.2.0</maven-toolchains-plugin.version>
         <maven-shade-plugin.version>3.6.0</maven-shade-plugin.version>
         <jmh.version>1.37</jmh.version>
@@ -37,6 +40,7 @@
             <groupId>org.openjdk.jmh</groupId>
             <artifactId>jmh-generator-annprocess</artifactId>
             <version>${jmh-generator-annprocess.version}</version>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>
@@ -97,6 +101,7 @@
                                         implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <mainClass>org.openjdk.jmh.Main</mainClass>
                                 </transformer>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
                             </transformers>
                             <filters>
                                 <filter>
