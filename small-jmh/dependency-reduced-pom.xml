@@ -36,12 +36,36 @@
           </execution>
         </executions>
       </plugin>
+      <plugin>
+        <artifactId>maven-toolchains-plugin</artifactId>
+        <version>${maven-toolchains-plugin.version}</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>toolchain</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <toolchains>
+            <jdk>
+              <id>openjdk-21</id>
+            </jdk>
+          </toolchains>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
   <properties>
     <jmh.version>1.36</jmh.version>
-    <maven.compiler.target>17</maven.compiler.target>
-    <maven.compiler.source>17</maven.compiler.source>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <jakarta.xml.bind-api.version>4.0.0</jakarta.xml.bind-api.version>
+    <spring-jcl.version>6.0.7</spring-jcl.version>
+    <bcprov-jdk18on.version>1.72</bcprov-jdk18on.version>
+    <spring-security-crypto.version>6.0.2</spring-security-crypto.version>
+    <scrypt.version>1.4.0</scrypt.version>
+    <jmh-generator-annprocess.version>${jmh.version}</jmh-generator-annprocess.version>
+    <jaxb-impl.version>4.0.1</jaxb-impl.version>
+    <maven-toolchains-plugin.version>3.2.0</maven-toolchains-plugin.version>
+    <jmh-core.version>${jmh.version}</jmh-core.version>
   </properties>
 </project>
